@@ -1,0 +1,35 @@
+# === Dependencies ===
+node_modules/
+
+# === Build Output ===
+dist/
+dist-ssr/
+build/
+
+# === Environment Variables ===
+.env
+.env.*
+!.env.example
+
+# === Vite Cache ===
+.vite/
+*.local
+
+# === IDE ===
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

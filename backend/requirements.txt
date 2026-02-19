@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+groq
+python-dotenv
+# Removed torch, transformers, accelerate for lightweight deployment
+huggingface_hub
