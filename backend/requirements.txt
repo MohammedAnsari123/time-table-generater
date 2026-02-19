@@ -8,3 +8,4 @@ groq
 python-dotenv
 # Removed torch, transformers, accelerate for lightweight deployment
 huggingface_hub
+cloudinary
