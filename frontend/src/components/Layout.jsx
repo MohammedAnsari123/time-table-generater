@@ -27,10 +27,10 @@ const Layout = ({ children }) => {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden relative w-full">
-            
+
             {/* Mobile Backdrop Overlay */}
             {isMobileOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 md:hidden transition-opacity"
                     onClick={() => setIsMobileOpen(false)}
                 />
@@ -39,7 +39,7 @@ const Layout = ({ children }) => {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed md:relative z-50 h-full bg-white shadow-xl transition-all duration-300 ease-in-out flex flex-col
+                    fixed top-0 left-0 md:relative z-50 h-full bg-white shadow-xl transition-all duration-300 ease-in-out flex flex-col
                     border-r border-gray-100
                     /* Mobile styles: hidden to the left by default, slide in when isMobileOpen */
                     ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
@@ -55,7 +55,7 @@ const Layout = ({ children }) => {
                     <span className={`text-xl font-bold text-purple-600 mx-auto hidden ${!isDesktopOpen && 'md:block'}`}>
                         GT
                     </span>
-                    
+
                     {/* Mobile Close Button inside sidebar */}
                     <button onClick={() => setIsMobileOpen(false)} className="p-1 rounded-md hover:bg-gray-100 text-gray-500 md:hidden">
                         <X size={20} />
@@ -122,8 +122,8 @@ const Layout = ({ children }) => {
             <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-gray-50/50">
                 {/* Mobile Header for Menu */}
                 <header className="md:hidden bg-white/80 backdrop-blur-md h-16 shadow-sm border-b border-gray-100 flex items-center px-4 justify-between shrink-0 z-30 sticky top-0 w-full transition-all">
-                    <button 
-                        onClick={() => setIsMobileOpen(true)} 
+                    <button
+                        onClick={() => setIsMobileOpen(true)}
                         className="p-2 -ml-2 text-gray-600 hover:bg-purple-50 hover:text-purple-600 rounded-xl transition-colors"
                         aria-label="Open Menu"
                     >
