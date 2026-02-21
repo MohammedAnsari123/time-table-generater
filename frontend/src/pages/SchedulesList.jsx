@@ -14,19 +14,24 @@ const SchedulesList = () => {
                 const uniqueSubjects = new Map();
 
                 timetables.forEach(t => {
-                    t.subjects?.forEach(s => {
-                        // Use Code as key
-                        if (!uniqueSubjects.has(s.code)) {
-                            uniqueSubjects.set(s.code, {
-                                ...s,
-                                associated_timetables: [t.metadata?.department || 'Unknown']
-                            });
-                        } else {
-                            const existing = uniqueSubjects.get(s.code);
-                            if (!existing.associated_timetables.includes(t.metadata?.department)) {
-                                existing.associated_timetables.push(t.metadata?.department);
+                    const deptName = t.metadata?.department || 'Unknown';
+                    // Loop over each division in the timetable
+                    t.divisions?.forEach(d => {
+                        // Loop over each subject in the division
+                        d.subjects?.forEach(s => {
+                            // Use Code as key
+                            if (!uniqueSubjects.has(s.code)) {
+                                uniqueSubjects.set(s.code, {
+                                    ...s,
+                                    associated_timetables: [deptName]
+                                });
+                            } else {
+                                const existing = uniqueSubjects.get(s.code);
+                                if (!existing.associated_timetables.includes(deptName)) {
+                                    existing.associated_timetables.push(deptName);
+                                }
                             }
-                        }
+                        });
                     });
                 });
 
