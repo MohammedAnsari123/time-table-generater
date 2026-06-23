@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { TextInput, NumberInput } from './FormInputs';
-import { Plus, Trash, Users } from 'lucide-react';
+import { Plus, Trash, Users, BookOpen } from 'lucide-react';
+import { getSubjects } from '../services/api';
 
 const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
     const [activeDivIndex, setActiveDivIndex] = useState(0);
+    const [dbSubjects, setDbSubjects] = useState([]);
+
+    useEffect(() => {
+        const fetchDbSubjects = async () => {
+            try {
+                const data = await getSubjects();
+                setDbSubjects(data);
+            } catch (err) {
+                console.error("Failed to load database subjects", err);
+            }
+        };
+        fetchDbSubjects();
+    }, []);
 
     // Ensure at least one division exists
     useEffect(() => {
@@ -110,15 +124,38 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                     <h4 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Add Subject to Div {activeDiv.name}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
-                        <div className="md:col-span-4">
-                            <TextInput label="Name" value={tempSubject.name} onChange={e => setTempSubject({ ...tempSubject, name: e.target.value })} placeholder="Mathematics" />
+                        <div className="md:col-span-4 flex flex-col">
+                            <label className="text-sm font-medium text-gray-700 mb-1">Select Subject</label>
+                            <select
+                                className="p-2 border rounded-md text-sm bg-white"
+                                value={tempSubject.code}
+                                onChange={e => {
+                                    const sub = dbSubjects.find(s => s.code === e.target.value);
+                                    if (sub) {
+                                        setTempSubject({
+                                            code: sub.code,
+                                            name: sub.name,
+                                            type: sub.type,
+                                            periods: sub.periods_per_week,
+                                            assigned_lecturer_id: sub.assigned_lecturer_id || ''
+                                        });
+                                    } else {
+                                        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '' });
+                                    }
+                                }}
+                            >
+                                <option value="">-- Choose Subject --</option>
+                                {dbSubjects.map(s => (
+                                    <option key={s.code} value={s.code}>{s.name} ({s.code})</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="md:col-span-2">
-                            <TextInput label="Code" value={tempSubject.code} onChange={e => setTempSubject({ ...tempSubject, code: e.target.value })} placeholder="M101" />
+                            <TextInput label="Code (Auto)" value={tempSubject.code} onChange={e => setTempSubject({ ...tempSubject, code: e.target.value })} placeholder="Code" required />
                         </div>
                         <div className="md:col-span-2 flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <select className="p-2 border rounded-md text-sm" value={tempSubject.type} onChange={e => setTempSubject({ ...tempSubject, type: e.target.value })}>
+                            <label className="text-sm font-medium text-gray-700 mb-1">Type (Auto)</label>
+                            <select className="p-2 border rounded-md text-sm bg-gray-50 outline-none" value={tempSubject.type} onChange={e => setTempSubject({ ...tempSubject, type: e.target.value })}>
                                 <option value="Theory">Theory</option>
                                 <option value="Lab">Lab</option>
                             </select>
@@ -131,7 +168,7 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
                         <div className="md:col-span-2 flex flex-col">
                             <label className="text-sm font-medium text-gray-700 mb-1">Lecturer</label>
                             <select
-                                className="p-2 border rounded-md text-sm"
+                                className="p-2 border rounded-md text-sm bg-white"
                                 value={tempSubject.assigned_lecturer_id}
                                 onChange={e => setTempSubject({ ...tempSubject, assigned_lecturer_id: e.target.value })}
                             >

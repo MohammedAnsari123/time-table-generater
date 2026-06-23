@@ -3,10 +3,12 @@ from typing import List, Dict, Any
 from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot
 from pydantic import BaseModel
 from app.services.llm_service import generate_timetable_with_llm
+from datetime import datetime
 
 from app.services.validator import validate_timetable
 from app.core.database import get_database
 import uuid
+
 
 router = APIRouter()
 
@@ -133,7 +135,8 @@ async def generate_timetable_endpoint(request: TimetableRequest):
         divisions=request.divisions,
         lecturers=request.lecturers,
         classrooms=request.classrooms,
-        slots=all_generated_slots
+        slots=all_generated_slots,
+        created_at=datetime.utcnow()
     )
     
     db = await get_database()
@@ -146,7 +149,7 @@ async def generate_timetable_endpoint(request: TimetableRequest):
 @router.get("/list/all", response_model=List[TimetableResponse])
 async def list_timetables():
     db = await get_database()
-    cursor = db.timetables.find().sort("metadata.academic_year", -1) # Sort by something, maybe add created_at later
+    cursor = db.timetables.find().sort("created_at", -1)
     timetables = await cursor.to_list(length=100)
     return [TimetableResponse(**doc) for doc in timetables]
 
@@ -273,7 +276,8 @@ async def regenerate_timetable(request: RegenerateRequest):
         divisions=original_timetable.divisions,
         lecturers=original_timetable.lecturers,
         classrooms=original_timetable.classrooms,
-        slots=all_generated_slots
+        slots=all_generated_slots,
+        created_at=datetime.utcnow()
     )
     
     timetable_dict = new_timetable.dict()

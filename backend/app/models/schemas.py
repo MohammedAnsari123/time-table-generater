@@ -65,6 +65,8 @@ class TimetableSlot(BaseModel):
     room: str
     type: str
 
+from datetime import datetime
+
 class TimetableResponse(BaseModel):
     timetable_id: str
     metadata: TimetableMetadata
@@ -72,3 +74,5 @@ class TimetableResponse(BaseModel):
     lecturers: List[Lecturer]
     classrooms: List[Classroom]
     slots: List[TimetableSlot]
+    created_at: Optional[datetime] = None
+

@@ -14,9 +14,8 @@ import SchedulesList from './pages/SchedulesList';
 
 // Layout Wrapper for protected routes
 const ProtectedRoute = ({ children }) => {
-  // In a real app, check auth token here
-  // const token = localStorage.getItem('token');
-  // if (!token) return <Navigate to="/login" />;
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/login" />;
   return <Layout>{children}</Layout>;
 };
 

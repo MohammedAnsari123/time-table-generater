@@ -220,11 +220,48 @@ def optimize_distribution(current_slots: list, occupied_slots: list, request: Ti
                         break
             
             if not moved:
-                # Iterate again to try SWAP
-                # Find a slot of DIFFERENT subject on a GOOD target day
-                # ensuring that AFTER swap, neither subject violates constraints
-                # This is complex, skipping for MVP to avoid infinite loops or complexity. 
-                # Simple move to free slot is often enough.
-                pass
+                # Backtracking/swapping: Swap `slot` with another division slot `swap_slot`
+                # such that resource constraints are preserved and counts per day improve.
+                for swap_slot in current_slots:
+                    if swap_slot is slot:
+                        continue
+                    if swap_slot.type == "Lab":
+                        continue
+                    
+                    target_day = swap_slot.day
+                    target_period = swap_slot.period
+                    
+                    current_sub_on_target = day_counts[target_day].get(slot.subject, 0)
+                    swap_sub_on_origin = day_counts[origin_day].get(swap_slot.subject, 0)
+                    
+                    if current_sub_on_target < 2 and swap_sub_on_origin < 2:
+                        key_target = (target_day, target_period)
+                        slot_conflict = False
+                        if key_target in occupied_map:
+                            if slot.lecturer in occupied_map[key_target]['lecturers'] or slot.room in occupied_map[key_target]['rooms']:
+                                slot_conflict = True
+                                
+                        key_origin = (origin_day, origin_period)
+                        swap_conflict = False
+                        if key_origin in occupied_map:
+                            if swap_slot.lecturer in occupied_map[key_origin]['lecturers'] or swap_slot.room in occupied_map[key_origin]['rooms']:
+                                swap_conflict = True
+                                
+                        if not slot_conflict and not swap_conflict:
+                            # Swap positions!
+                            slot.day = target_day
+                            slot.period = target_period
+                            swap_slot.day = origin_day
+                            swap_slot.period = origin_period
+                            
+                            day_counts[origin_day][slot.subject] -= 1
+                            day_counts[target_day][slot.subject] = day_counts[target_day].get(slot.subject, 0) + 1
+                            
+                            day_counts[target_day][swap_slot.subject] -= 1
+                            day_counts[origin_day][swap_slot.subject] = day_counts[origin_day].get(swap_slot.subject, 0) + 1
+                            
+                            moved = True
+                            print(f"Swapped {slot.subject} with {swap_slot.subject} to balance distribution.")
+                            break
 
     return current_slots

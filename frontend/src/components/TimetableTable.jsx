@@ -21,9 +21,9 @@ const TimetableTable = ({ timetable }) => {
             <div className="min-w-max">
                 {/* Header Row */}
                 <div className="flex bg-gray-50 rounded-t-lg border-b border-gray-200">
-                    <div className="w-32 flex-shrink-0 p-4 font-bold text-gray-700 uppercase text-xs tracking-wider">Day / Period</div>
+                    <div className="w-32 3xl:w-48 flex-shrink-0 p-4 font-bold text-gray-700 uppercase text-xs 3xl:text-sm tracking-wider">Day / Period</div>
                     {periods.map(p => (
-                        <div key={p} className="flex-1 min-w-[120px] p-4 font-bold text-gray-700 text-center uppercase text-xs tracking-wider border-l border-gray-200">
+                        <div key={p} className="flex-1 min-w-[120px] 3xl:min-w-[200px] p-4 font-bold text-gray-700 text-center uppercase text-xs 3xl:text-sm tracking-wider border-l border-gray-200">
                             Period {p}
                         </div>
                     ))}
@@ -32,27 +32,27 @@ const TimetableTable = ({ timetable }) => {
                 {/* Days Rows */}
                 {days.map(day => (
                     <div key={day} className="flex border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                        <div className="w-32 flex-shrink-0 p-4 font-bold text-gray-800 flex items-center bg-gray-50/50 border-r border-gray-200">
+                        <div className="w-32 3xl:w-48 flex-shrink-0 p-4 font-bold text-gray-800 flex items-center bg-gray-50/50 border-r border-gray-200 text-xs 3xl:text-sm">
                             {day}
                         </div>
                         {periods.map(period => {
                             const slot = getSlotData(day, period);
                             return (
-                                <div key={period} className="flex-1 min-w-[120px] p-2 border-l border-gray-100 relative group">
+                                <div key={period} className="flex-1 min-w-[120px] 3xl:min-w-[200px] p-2 border-l border-gray-100 relative group">
                                     {slot ? (
                                         <div className={`
-                                            h-full w-full rounded-lg p-3 shadow-sm transition-all hover:shadow-md cursor-pointer
+                                            h-full w-full rounded-lg p-3 3xl:p-5 shadow-sm transition-all hover:shadow-md cursor-pointer
                                             ${slot.type === 'Lab' ? 'bg-gradient-to-br from-blue-700 to-blue-900 border-l-4 border-blue-500 text-white' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-l-4 border-blue-500 text-gray-800'}
                                         `}>
-                                            <p className={`font-bold text-sm ${slot.type === 'Lab' ? 'text-white' : 'text-gray-800'}`}>
-                                                {subjectMap[slot.subject] || slot.subject} {/* Show Name if found, else ID/Code */}
+                                            <p className={`font-bold text-sm 3xl:text-base ${slot.type === 'Lab' ? 'text-white' : 'text-gray-800'}`}>
+                                                {subjectMap[slot.subject] || slot.subject}
                                             </p>
-                                            <p className={`text-xs mt-1 flex items-center gap-1 ${slot.type === 'Lab' ? 'text-blue-100' : 'text-gray-600'}`}>
+                                            <p className={`text-xs 3xl:text-sm mt-1 flex items-center gap-1 ${slot.type === 'Lab' ? 'text-blue-100' : 'text-gray-600'}`}>
                                                 <span className="font-medium">
-                                                    {lecturerMap[slot.lecturer] || slot.lecturer} {/* Show Name if found, else ID */}
+                                                    {lecturerMap[slot.lecturer] || slot.lecturer}
                                                 </span>
                                             </p>
-                                            <div className="mt-2 inline-block px-2 py-0.5 rounded text-[10px] bg-white bg-opacity-60 text-gray-700 font-mono">
+                                            <div className="mt-2 inline-block px-2 py-0.5 rounded text-[10px] 3xl:text-xs bg-white bg-opacity-60 text-gray-700 font-mono">
                                                 {slot.room}
                                             </div>
 

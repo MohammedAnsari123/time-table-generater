@@ -73,4 +73,46 @@ export const regenerateTimetable = async (id, additionalConstraints) => {
     return response.data;
 };
 
+// --- Lecturer CRUD APIs ---
+export const getLecturers = async (q = '') => {
+    const response = await api.get(`/lecturers/?q=${encodeURIComponent(q)}`);
+    return response.data;
+};
+
+export const createLecturer = async (lecturer) => {
+    const response = await api.post('/lecturers/', lecturer);
+    return response.data;
+};
+
+export const updateLecturer = async (id, lecturer) => {
+    const response = await api.put(`/lecturers/${id}`, lecturer);
+    return response.data;
+};
+
+export const deleteLecturer = async (id) => {
+    const response = await api.delete(`/lecturers/${id}`);
+    return response.data;
+};
+
+// --- Subject CRUD APIs ---
+export const getSubjects = async (q = '') => {
+    const response = await api.get(`/subjects/?q=${encodeURIComponent(q)}`);
+    return response.data;
+};
+
+export const createSubject = async (subject) => {
+    const response = await api.post('/subjects/', subject);
+    return response.data;
+};
+
+export const updateSubject = async (code, subject) => {
+    const response = await api.put(`/subjects/${code}`, subject);
+    return response.data;
+};
+
+export const deleteSubject = async (code) => {
+    const response = await api.delete(`/subjects/${code}`);
+    return response.data;
+};
+
 export default api;

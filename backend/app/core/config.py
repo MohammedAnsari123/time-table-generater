@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PROD"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    GROQ_API_KEY: str = "YOUR_GROQ_API_KEY"
     HF_API_KEY: str = "YOUR_HF_API_KEY"
     MONGO_URI: str = "mongodb+srv://newuser:admin123@cluster0.rjuus7n.mongodb.net/timetable_db"
     MONGO_DB_NAME: str = "timetable_db"
