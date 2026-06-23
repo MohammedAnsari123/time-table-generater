@@ -5,8 +5,7 @@ pydantic-settings
 motor
 python-multipart
 python-jose[cryptography]
-passlib[bcrypt]
-groq
+bcrypt
 python-dotenv
 huggingface_hub
 cloudinary
