@@ -46,22 +46,22 @@ A state-of-the-art, full-stack academic timetable scheduling system. The applica
 
 ```mermaid
 flowchart TD
-    subgraph Frontend [React SPA (Vite + TailwindCSS)]
-        UI[Dashboard & Grid Editor UI]
-        API[Axios API Service]
-        Export[PDF / DOCX Exporter]
+    subgraph Frontend ["React SPA (Vite + TailwindCSS)"]
+        UI["Dashboard & Grid Editor UI"]
+        API["Axios API Service"]
+        Export["PDF / DOCX Exporter"]
     end
 
-    subgraph Backend [FastAPI Server]
-        Router[Router Gateways]
-        HF[Hugging Face Client]
-        Repair[Heuristic Repair Solver]
-        Validator[Constraint Validator]
+    subgraph Backend ["FastAPI Server"]
+        Router["Router Gateways"]
+        HF["Hugging Face Client"]
+        Repair["Heuristic Repair Solver"]
+        Validator["Constraint Validator"]
     end
 
-    subgraph Storage [Database & Cloud]
-        Mongo[(MongoDB Atlas)]
-        Cloudinary[Cloudinary CDN Header]
+    subgraph Storage ["Database & Cloud"]
+        Mongo[("MongoDB Atlas")]
+        Cloudinary["Cloudinary CDN Header"]
     end
 
     UI --> API
