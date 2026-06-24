@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
-from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot
+from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot, Classroom
 from pydantic import BaseModel
 from app.services.llm_service import generate_timetable_with_llm
 from datetime import datetime
