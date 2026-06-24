@@ -19,10 +19,10 @@ class TokenData(BaseModel):
 class Staff(BaseModel):
     id: str # Staff ID
     name: str
-    email: EmailStr
-    department: str
-    designation: str
-    subjects: List[str]
+    email: Optional[EmailStr] = None
+    department: str = ""
+    designation: str = ""
+    subjects: List[str] = []
     max_periods_per_day: int = 4
     max_periods_per_week: int = 20
     available_days: List[str] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -38,17 +38,17 @@ class Subject(BaseModel):
     type: Literal["Theory", "Lab"]
     periods_per_week: int
     assigned_lecturer_id: Optional[str] = None
-    semester: int
-    department: str
-    credits: int
+    semester: Optional[int] = 1
+    department: Optional[str] = ""
+    credits: Optional[int] = 3
     lab_requirement: bool = False
 
 class Classroom(BaseModel):
     id: str # Room Number
-    name: str
+    name: str = ""
     capacity: int
-    building: str
-    floor: int
+    building: str = ""
+    floor: int = 0
     type: Literal["Classroom", "Lab"] = "Classroom"
     status: Literal["Available", "Unavailable"] = "Available"
 
