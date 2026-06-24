@@ -42,7 +42,7 @@ async def get_stats():
         "active_lecturers": total_lecturers
     }
 
-from app.services.repair import repair_timetable, resolve_sequential_conflicts, optimize_distribution
+from app.services.repair import repair_timetable, resolve_sequential_conflicts, optimize_distribution, repair_division_slots_full
 
 from app.services.prompt_builder import build_single_division_prompt
 
@@ -97,11 +97,8 @@ async def generate_timetable_endpoint(request: TimetableRequest):
                 # Check 1: Subject Load for THIS division
                 # (Simple check locally before full validation)
                 # 3.5 REPAIR ALGORITHM (Deterministic Fix)
-                # Try to move conflicts to empty slots BEFORE validation
-                division_slots = resolve_sequential_conflicts(division_slots, all_generated_slots, request)
-                
-                # 3.6 OPTIMIZE DISTRIBUTION (Spread subjects)
-                division_slots = optimize_distribution(division_slots, all_generated_slots, request)
+                # Try to move conflicts and fill deficits BEFORE validation
+                division_slots = repair_division_slots_full(division_slots, all_generated_slots, request, division.name)
 
                 # Check 2: Global Conflicts (Is it clashing with all_generated_slots?)
                 # We can use our validator by constructing a temporary "partial" timetable
@@ -271,8 +268,7 @@ async def regenerate_timetable(request: RegenerateRequest):
                 division_slots = [TimetableSlot(**slot) for slot in slots_data]
                 
                 # Repairs & Optims
-                division_slots = resolve_sequential_conflicts(division_slots, all_generated_slots, prompt_request)
-                division_slots = optimize_distribution(division_slots, all_generated_slots, prompt_request)
+                division_slots = repair_division_slots_full(division_slots, all_generated_slots, prompt_request, division.name)
                 
                 # Validate
                 temp_slots = all_generated_slots + division_slots

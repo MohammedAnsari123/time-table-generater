@@ -6,9 +6,13 @@ from app.core.config import settings
 # Initialize HuggingFace client
 try:
     hf_client = InferenceClient(api_key=settings.HF_API_KEY)
-    # Primary and fallback HuggingFace Model IDs
-    HF_PRIMARY_MODEL = "Qwen/Qwen2.5-72B-Instruct"
-    HF_FALLBACK_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+    # List of models ordered by preference (fastest/smartest first)
+    HF_MODELS = [
+        "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "Qwen/Qwen2.5-7B-Instruct",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "Qwen/Qwen2.5-72B-Instruct"
+    ]
 except Exception as e:
     print(f"HF Client Init Failed: {e}")
     hf_client = None
@@ -18,8 +22,8 @@ def generate_timetable_with_llm(prompt: str) -> dict:
     if not hf_client:
         return {"error": "HuggingFace API client is not initialized. Please configure HF_API_KEY."}
 
-    # Try Primary Model first
-    for model_id in [HF_PRIMARY_MODEL, HF_FALLBACK_MODEL]:
+    # Try models sequentially
+    for model_id in HF_MODELS:
         try:
             print(f"Attempting generation with HuggingFace API ({model_id})...")
             messages = [
@@ -64,3 +68,4 @@ def generate_timetable_with_llm(prompt: str) -> dict:
             continue # Try fallback model
             
     return {"error": "Failed to generate timetable with HuggingFace. All models returned parsing errors or timed out."}
+

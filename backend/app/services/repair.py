@@ -265,3 +265,217 @@ def optimize_distribution(current_slots: list, occupied_slots: list, request: Ti
                             break
 
     return current_slots
+
+
+def repair_division_slots_full(
+    division_slots: list,
+    all_generated_slots: list,
+    request: TimetableRequest,
+    division_name: str
+) -> list:
+    """
+    Deterministically repairs the generated slots for a division to ensure:
+    1. Correct number of periods per subject (no excess, no deficit).
+    2. No lecturer double-booking.
+    3. No room double-booking.
+    4. Lecturer is available on the scheduled days.
+    5. At most 2 periods of a Theory subject per day (distribution constraint).
+    """
+    # 1. Find division
+    div = next((d for d in request.divisions if d.name == division_name), None)
+    if not div:
+        return division_slots
+
+    # Map subjects by code
+    subjects_by_code = {s.code: s for s in div.subjects}
+    
+    # 2. Filter out invalid slots
+    cleaned_slots = []
+    for slot in division_slots:
+        if slot.division == division_name and slot.subject in subjects_by_code:
+            cleaned_slots.append(slot)
+
+    # 3. Separate slots by subject and enforce max periods (remove excess)
+    slots_by_sub = {s.code: [] for s in div.subjects}
+    for slot in cleaned_slots:
+        slots_by_sub[slot.subject].append(slot)
+
+    retained_slots = []
+    deficits = {}
+    for subject in div.subjects:
+        req = subject.periods_per_week
+        slots = slots_by_sub[subject.code]
+        if len(slots) > req:
+            retained_slots.extend(slots[:req])
+            deficits[subject.code] = 0
+        else:
+            retained_slots.extend(slots)
+            deficits[subject.code] = req - len(slots)
+
+    cleaned_slots = retained_slots
+
+    # Let's map lecturers availability
+    lecturers_by_id = {l.id: l for l in request.lecturers}
+
+    # Helper function to get busy maps
+    def get_busy_maps(current_slots):
+        busy_lecturers = set()
+        busy_rooms = set()
+        for slot in all_generated_slots:
+            busy_lecturers.add((slot.day, slot.period, slot.lecturer))
+            busy_rooms.add((slot.day, slot.period, slot.room))
+        for slot in current_slots:
+            busy_lecturers.add((slot.day, slot.period, slot.lecturer))
+            busy_rooms.add((slot.day, slot.period, slot.room))
+        return busy_lecturers, busy_rooms
+
+    # Helper to check if a day/period is completely free for this division
+    def get_division_occupied(current_slots):
+        return {(slot.day, slot.period) for slot in current_slots}
+
+    # Helper to find a free slot for a subject
+    def find_free_slot(subject_code, current_slots, exclude_slot=None, strict_dist=True):
+        sub = subjects_by_code[subject_code]
+        lecturer_id = sub.assigned_lecturer_id
+        lect = lecturers_by_id.get(lecturer_id)
+        
+        # Determine target room type
+        expected_room_type = "Lab" if sub.type == "Lab" else "Classroom"
+        
+        # Build busy maps excluding the current slot if we are moving it
+        slots_to_consider = [s for s in current_slots if s is not exclude_slot]
+        busy_lecturers, busy_rooms = get_busy_maps(slots_to_consider)
+        division_occupied = get_division_occupied(slots_to_consider)
+
+        working_days = request.metadata.working_days
+        periods = list(range(1, request.metadata.periods_per_day + 1))
+        
+        # Sort days by how few times this subject is scheduled on them (distribution)
+        day_sub_counts = {day: 0 for day in working_days}
+        for s in slots_to_consider:
+            if s.subject == subject_code:
+                day_sub_counts[s.day] += 1
+
+        # We try to search days. If strict_dist, we only consider days with counts < 2 for Theory.
+        for day in working_days:
+            # Check lecturer availability
+            if lect and day not in lect.available_days:
+                continue
+            
+            # Check Theory distribution count
+            if strict_dist and sub.type == "Theory" and day_sub_counts[day] >= 2:
+                continue
+
+            for period in periods:
+                if (day, period) in division_occupied:
+                    continue
+                
+                # Check lecturer conflict
+                if (day, period, lecturer_id) in busy_lecturers:
+                    continue
+                
+                # Find an available room of correct type
+                available_room = None
+                for room in request.classrooms:
+                    if room.type != expected_room_type or room.status != "Available":
+                        continue
+                    if (day, period, room.id) not in busy_rooms:
+                        available_room = room.id
+                        break
+                
+                if available_room:
+                    return day, period, available_room
+                    
+        # If we failed with strict distribution, try without it
+        if strict_dist and sub.type == "Theory":
+            return find_free_slot(subject_code, current_slots, exclude_slot, strict_dist=False)
+            
+        return None
+
+    # 4. Resolve clashes in existing slots
+    resolved_slots = []
+    for slot in cleaned_slots:
+        sub = subjects_by_code[slot.subject]
+        lecturer_id = sub.assigned_lecturer_id
+        lect = lecturers_by_id.get(lecturer_id)
+        
+        # Re-verify/enforce correct lecturer in slot just in case the LLM assigned wrong lecturer
+        slot.lecturer = lecturer_id
+        
+        # Check conflicts
+        busy_lecturers, busy_rooms = get_busy_maps(resolved_slots)
+        division_occupied = get_division_occupied(resolved_slots)
+        
+        has_conflict = False
+        
+        # A. Check division overlap
+        if (slot.day, slot.period) in division_occupied:
+            has_conflict = True
+        # B. Check lecturer double-booking
+        elif (slot.day, slot.period, lecturer_id) in busy_lecturers:
+            has_conflict = True
+        # C. Check room double-booking
+        elif (slot.day, slot.period, slot.room) in busy_rooms:
+            # Can we fix this room booking by just changing the room?
+            expected_room_type = "Lab" if sub.type == "Lab" else "Classroom"
+            new_room = None
+            for room in request.classrooms:
+                if room.type != expected_room_type or room.status != "Available":
+                    continue
+                if (slot.day, slot.period, room.id) not in busy_rooms:
+                    new_room = room.id
+                    break
+            if new_room:
+                slot.room = new_room
+            else:
+                has_conflict = True
+        # D. Check lecturer available day
+        elif lect and slot.day not in lect.available_days:
+            has_conflict = True
+            
+        # E. Check metadata ranges
+        elif slot.day not in request.metadata.working_days or slot.period < 1 or slot.period > request.metadata.periods_per_day:
+            has_conflict = True
+            
+        if not has_conflict:
+            resolved_slots.append(slot)
+        else:
+            # Relocate slot!
+            new_pos = find_free_slot(slot.subject, resolved_slots, exclude_slot=slot)
+            if new_pos:
+                slot.day, slot.period, slot.room = new_pos
+                resolved_slots.append(slot)
+            else:
+                # If we couldn't relocate, keep it to preserve period counts, but try to fix room
+                expected_room_type = "Lab" if sub.type == "Lab" else "Classroom"
+                for room in request.classrooms:
+                    if room.type == expected_room_type and room.status == "Available":
+                        slot.room = room.id
+                        break
+                resolved_slots.append(slot)
+
+    # 5. Fill deficits (missing periods)
+    for subject_code, deficit in deficits.items():
+        for _ in range(deficit):
+            new_pos = find_free_slot(subject_code, resolved_slots)
+            if new_pos:
+                day, period, room_id = new_pos
+                sub = subjects_by_code[subject_code]
+                new_slot = TimetableSlot(
+                    division=division_name,
+                    day=day,
+                    period=period,
+                    subject=subject_code,
+                    lecturer=sub.assigned_lecturer_id,
+                    room=room_id,
+                    type=sub.type
+                )
+                resolved_slots.append(new_slot)
+            else:
+                print(f"Warning: Could not find a free slot to resolve deficit of {subject_code} in Div {division_name}")
+
+    # 6. Optimize distribution to balance the slots
+    resolved_slots = optimize_distribution(resolved_slots, all_generated_slots, request)
+
+    return resolved_slots
+
