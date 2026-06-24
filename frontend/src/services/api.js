@@ -73,6 +73,11 @@ export const regenerateTimetable = async (id, additionalConstraints) => {
     return response.data;
 };
 
+export const updateTimetableSlots = async (id, slots) => {
+    const response = await api.put(`/timetable/${id}/slots`, { slots });
+    return response.data;
+};
+
 // --- Staff (Lecturers) CRUD APIs ---
 export const getStaff = async (q = '') => {
     const response = await api.get(`/staff/?q=${encodeURIComponent(q)}`);

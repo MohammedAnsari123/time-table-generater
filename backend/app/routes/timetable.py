@@ -315,3 +315,28 @@ async def regenerate_timetable(request: RegenerateRequest):
     await db.timetables.insert_one(timetable_dict)
     
     return new_timetable
+
+
+class TimetableUpdateSlotsRequest(BaseModel):
+    slots: List[TimetableSlot]
+
+@router.put("/{timetable_id}/slots", response_model=TimetableResponse)
+async def update_timetable_slots(timetable_id: str, payload: TimetableUpdateSlotsRequest):
+    db = await get_database()
+    
+    # 1. Fetch original timetable
+    timetable_doc = await db.timetables.find_one({"timetable_id": timetable_id})
+    if not timetable_doc:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+        
+    # 2. Update slots in MongoDB
+    slots_data = [slot.dict() for slot in payload.slots]
+    await db.timetables.update_one(
+        {"timetable_id": timetable_id},
+        {"$set": {"slots": slots_data}}
+    )
+    
+    # 3. Return updated timetable
+    updated_doc = await db.timetables.find_one({"timetable_id": timetable_id})
+    return TimetableResponse(**updated_doc)
+
