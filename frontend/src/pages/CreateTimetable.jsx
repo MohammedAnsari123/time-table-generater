@@ -18,6 +18,7 @@ const CreateTimetable = () => {
     });
     const [lecturers, setLecturers] = useState([]);
     const [classrooms, setClassrooms] = useState([]);
+    const [labs, setLabs] = useState([]);
     const [divisions, setDivisions] = useState([{ name: 'A', strength: 60, subjects: [] }]);
 
     const handleMetadataChange = (key, value) => setMetadata(prev => ({ ...prev, [key]: value }));
@@ -30,6 +31,7 @@ const CreateTimetable = () => {
                 divisions,
                 lecturers,
                 classrooms,
+                labs,
                 subjects: []
             };
 
@@ -63,7 +65,7 @@ const CreateTimetable = () => {
             <div className="flex-1 max-w-5xl mx-auto w-full px-4 pb-12">
                 <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
                     {step === 1 && <Step1Metadata metadata={metadata} handleMetadataChange={handleMetadataChange} />}
-                    {step === 2 && <Step2GlobalResources lecturers={lecturers} setLecturers={setLecturers} classrooms={classrooms} setClassrooms={setClassrooms} />}
+                    {step === 2 && <Step2GlobalResources lecturers={lecturers} setLecturers={setLecturers} classrooms={classrooms} setClassrooms={setClassrooms} labs={labs} setLabs={setLabs} />}
                     {step === 3 && <MultiDivisionForm divisions={divisions} setDivisions={setDivisions} lecturers={lecturers} />}
 
                     {/* Footer Navigation */}

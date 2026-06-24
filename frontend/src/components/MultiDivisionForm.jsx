@@ -47,7 +47,11 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
         name: '',
         type: 'Theory',
         periods: 4,
-        assigned_lecturer_id: ''
+        assigned_lecturer_id: '',
+        semester: 1,
+        department: '',
+        credits: 3,
+        lab_requirement: false
     });
 
     const addSubjectToDiv = () => {
@@ -57,12 +61,20 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
         if (!newDivs[activeDivIndex].subjects) newDivs[activeDivIndex].subjects = [];
 
         newDivs[activeDivIndex].subjects.push({
-            ...tempSubject,
-            periods_per_week: parseInt(tempSubject.periods)
+            code: tempSubject.code,
+            name: tempSubject.name,
+            type: tempSubject.type,
+            periods_per_week: parseInt(tempSubject.periods),
+            assigned_lecturer_id: tempSubject.assigned_lecturer_id || null,
+            semester: parseInt(tempSubject.semester || 1),
+            department: tempSubject.department || '',
+            credits: parseInt(tempSubject.credits || 3),
+            lab_requirement: tempSubject.lab_requirement || false
         });
         setDivisions(newDivs);
-        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '' });
+        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '', semester: 1, department: '', credits: 3, lab_requirement: false });
     };
+
 
     const removeSubjectFromDiv = (subIndex) => {
         const newDivs = [...divisions];
@@ -137,12 +149,17 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
                                             name: sub.name,
                                             type: sub.type,
                                             periods: sub.periods_per_week,
-                                            assigned_lecturer_id: sub.assigned_lecturer_id || ''
+                                            assigned_lecturer_id: sub.assigned_lecturer_id || '',
+                                            semester: sub.semester || 1,
+                                            department: sub.department || '',
+                                            credits: sub.credits || 3,
+                                            lab_requirement: sub.lab_requirement || false
                                         });
                                     } else {
-                                        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '' });
+                                        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '', semester: 1, department: '', credits: 3, lab_requirement: false });
                                     }
                                 }}
+
                             >
                                 <option value="">-- Choose Subject --</option>
                                 {dbSubjects.map(s => (

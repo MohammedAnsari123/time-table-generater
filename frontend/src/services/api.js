@@ -73,26 +73,32 @@ export const regenerateTimetable = async (id, additionalConstraints) => {
     return response.data;
 };
 
-// --- Lecturer CRUD APIs ---
-export const getLecturers = async (q = '') => {
-    const response = await api.get(`/lecturers/?q=${encodeURIComponent(q)}`);
+// --- Staff (Lecturers) CRUD APIs ---
+export const getStaff = async (q = '') => {
+    const response = await api.get(`/staff/?q=${encodeURIComponent(q)}`);
     return response.data;
 };
 
-export const createLecturer = async (lecturer) => {
-    const response = await api.post('/lecturers/', lecturer);
+export const createStaff = async (staffMember) => {
+    const response = await api.post('/staff/', staffMember);
     return response.data;
 };
 
-export const updateLecturer = async (id, lecturer) => {
-    const response = await api.put(`/lecturers/${id}`, lecturer);
+export const updateStaff = async (id, staffMember) => {
+    const response = await api.put(`/staff/${id}`, staffMember);
     return response.data;
 };
 
-export const deleteLecturer = async (id) => {
-    const response = await api.delete(`/lecturers/${id}`);
+export const deleteStaff = async (id) => {
+    const response = await api.delete(`/staff/${id}`);
     return response.data;
 };
+
+// Aliases to avoid breaking legacy code
+export const getLecturers = getStaff;
+export const createLecturer = createStaff;
+export const updateLecturer = updateStaff;
+export const deleteLecturer = deleteStaff;
 
 // --- Subject CRUD APIs ---
 export const getSubjects = async (q = '') => {
@@ -115,4 +121,47 @@ export const deleteSubject = async (code) => {
     return response.data;
 };
 
+// --- Classroom CRUD APIs ---
+export const getClassrooms = async (q = '') => {
+    const response = await api.get(`/classrooms/?q=${encodeURIComponent(q)}`);
+    return response.data;
+};
+
+export const createClassroom = async (classroom) => {
+    const response = await api.post('/classrooms/', classroom);
+    return response.data;
+};
+
+export const updateClassroom = async (id, classroom) => {
+    const response = await api.put(`/classrooms/${id}`, classroom);
+    return response.data;
+};
+
+export const deleteClassroom = async (id) => {
+    const response = await api.delete(`/classrooms/${id}`);
+    return response.data;
+};
+
+// --- Laboratory CRUD APIs ---
+export const getLabs = async (q = '') => {
+    const response = await api.get(`/labs/?q=${encodeURIComponent(q)}`);
+    return response.data;
+};
+
+export const createLab = async (lab) => {
+    const response = await api.post('/labs/', lab);
+    return response.data;
+};
+
+export const updateLab = async (id, lab) => {
+    const response = await api.put(`/labs/${id}`, lab);
+    return response.data;
+};
+
+export const deleteLab = async (id) => {
+    const response = await api.delete(`/labs/${id}`);
+    return response.data;
+};
+
 export default api;
+

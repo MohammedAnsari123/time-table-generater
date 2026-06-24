@@ -48,7 +48,24 @@ from app.services.prompt_builder import build_single_division_prompt
 
 @router.post("/generate", response_model=TimetableResponse)
 async def generate_timetable_endpoint(request: TimetableRequest):
+    # Merge labs into classrooms pool if provided
+    if request.labs:
+        for lab in request.labs:
+            if not any(c.id == lab.id for c in request.classrooms):
+                request.classrooms.append(
+                    Classroom(
+                        id=lab.id,
+                        name=lab.name,
+                        capacity=lab.capacity,
+                        building=lab.department,
+                        floor=0,
+                        type="Lab",
+                        status=lab.status
+                    )
+                )
+
     all_generated_slots: List[TimetableSlot] = []
+
     
     # Iterate through each division sequentially
     for division in request.divisions:
@@ -199,15 +216,32 @@ async def regenerate_timetable(request: RegenerateRequest):
     # 2. Reconstruct Request
     new_constraints = [request.additional_constraints] if request.additional_constraints else []
     
+    # Merge labs into classrooms pool if provided
+    if original_timetable.labs:
+        for lab in original_timetable.labs:
+            if not any(c.id == lab.id for c in original_timetable.classrooms):
+                original_timetable.classrooms.append(
+                    Classroom(
+                        id=lab.id,
+                        name=lab.name,
+                        capacity=lab.capacity,
+                        building=lab.department,
+                        floor=0,
+                        type="Lab",
+                        status=lab.status
+                    )
+                )
+
     # TimetableRequest for reference (used in prompt building)
     prompt_request = TimetableRequest(
         metadata=original_timetable.metadata,
         divisions=original_timetable.divisions, 
         lecturers=original_timetable.lecturers,
         classrooms=original_timetable.classrooms,
-        subjects=[], # subjects are inside divisions now
+        labs=original_timetable.labs,
         constraints=new_constraints 
     )
+
     
     all_generated_slots: List[TimetableSlot] = []
     

@@ -10,11 +10,12 @@ async def list_subjects(q: Optional[str] = None):
     db = await get_database()
     query = {}
     if q:
-        # Search by code or name (case-insensitive)
+        # Search by code, name, or department (case-insensitive)
         query = {
             "$or": [
                 {"code": {"$regex": q, "$options": "i"}},
-                {"name": {"$regex": q, "$options": "i"}}
+                {"name": {"$regex": q, "$options": "i"}},
+                {"department": {"$regex": q, "$options": "i"}}
             ]
         }
     cursor = db.subjects.find(query)

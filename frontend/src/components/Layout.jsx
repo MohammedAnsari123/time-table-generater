@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, BookOpen, Users, LogOut, Menu, X, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookOpen, Users, LogOut, Menu, X, Sparkles, Building, FlaskConical } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const [isDesktopOpen, setIsDesktopOpen] = useState(true);
@@ -21,8 +21,10 @@ const Layout = ({ children }) => {
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/timetables', label: 'Timetables', icon: Calendar },
-        { path: '/schedules', label: 'Subjects', icon: BookOpen },
-        { path: '/lecturers', label: 'Lecturers', icon: Users },
+        { path: '/staff', label: 'Staff', icon: Users },
+        { path: '/subjects', label: 'Subjects', icon: BookOpen },
+        { path: '/classrooms', label: 'Classrooms', icon: Building },
+        { path: '/labs', label: 'Laboratories', icon: FlaskConical },
     ];
 
     return (

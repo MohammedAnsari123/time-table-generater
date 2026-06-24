@@ -16,12 +16,21 @@ class TokenData(BaseModel):
 
 # --- Timetable Models ---
 # --- Timetable Models ---
-class Lecturer(BaseModel):
-    id: str
+class Staff(BaseModel):
+    id: str # Staff ID
     name: str
+    email: EmailStr
+    department: str
+    designation: str
     subjects: List[str]
     max_periods_per_day: int = 4
+    max_periods_per_week: int = 20
     available_days: List[str] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    preferred_slots: Optional[List[str]] = None
+    status: Literal["Active", "Inactive"] = "Active"
+
+# Maintain compatibility alias for the scheduling engine
+Lecturer = Staff
 
 class Subject(BaseModel):
     code: str
@@ -29,11 +38,28 @@ class Subject(BaseModel):
     type: Literal["Theory", "Lab"]
     periods_per_week: int
     assigned_lecturer_id: Optional[str] = None
+    semester: int
+    department: str
+    credits: int
+    lab_requirement: bool = False
 
 class Classroom(BaseModel):
-    id: str
+    id: str # Room Number
+    name: str
     capacity: int
-    type: Literal["Classroom", "Lab"]
+    building: str
+    floor: int
+    type: Literal["Classroom", "Lab"] = "Classroom"
+    status: Literal["Available", "Unavailable"] = "Available"
+
+class Laboratory(BaseModel):
+    id: str # Lab Number
+    name: str
+    capacity: int
+    department: str
+    supported_subjects: List[str]
+    available_days: List[str] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    status: Literal["Available", "Unavailable"] = "Available"
 
 class TimetableMetadata(BaseModel):
     institution_name: str
@@ -44,6 +70,7 @@ class TimetableMetadata(BaseModel):
     periods_per_day: int = 7
     breaks: List[str] = ["Lunch"]
 
+
 class Division(BaseModel):
     name: str
     strength: int = 60
@@ -52,8 +79,9 @@ class Division(BaseModel):
 class TimetableRequest(BaseModel):
     metadata: TimetableMetadata
     divisions: List[Division] # MULTI-DIVISION SUPPORT
-    lecturers: List[Lecturer] # Global Pool
+    lecturers: List[Lecturer] # Global Pool (Staff)
     classrooms: List[Classroom] # Global Pool
+    labs: Optional[List[Laboratory]] = [] # Global Pool of Labs
     constraints: Optional[List[str]] = None
 
 class TimetableSlot(BaseModel):
@@ -73,6 +101,8 @@ class TimetableResponse(BaseModel):
     divisions: List[Division]
     lecturers: List[Lecturer]
     classrooms: List[Classroom]
+    labs: Optional[List[Laboratory]] = []
     slots: List[TimetableSlot]
     created_at: Optional[datetime] = None
+
 

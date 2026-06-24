@@ -9,8 +9,10 @@ import TimetableHistory from './pages/TimetableHistory';
 import ManualEditTimetable from './pages/ManualEditTimetable';
 
 import Layout from './components/Layout';
-import LecturersList from './pages/LecturersList';
-import SchedulesList from './pages/SchedulesList';
+import StaffList from './pages/StaffList';
+import SubjectsList from './pages/SubjectsList';
+import ClassroomsList from './pages/ClassroomsList';
+import LabsList from './pages/LabsList';
 
 // Layout Wrapper for protected routes
 const ProtectedRoute = ({ children }) => {
@@ -41,9 +43,11 @@ function App() {
         <Route path="/update/:id" element={<ProtectedRoute><UpdateTimetable /></ProtectedRoute>} />
         <Route path="/manual-edit/:id" element={<ProtectedRoute><ManualEditTimetable /></ProtectedRoute>} />
 
-        {/* New Pages */}
-        <Route path="/lecturers" element={<ProtectedRoute><LecturersList /></ProtectedRoute>} />
-        <Route path="/schedules" element={<ProtectedRoute><SchedulesList /></ProtectedRoute>} />
+        {/* Resource Management Pages */}
+        <Route path="/staff" element={<ProtectedRoute><StaffList /></ProtectedRoute>} />
+        <Route path="/subjects" element={<ProtectedRoute><SubjectsList /></ProtectedRoute>} />
+        <Route path="/classrooms" element={<ProtectedRoute><ClassroomsList /></ProtectedRoute>} />
+        <Route path="/labs" element={<ProtectedRoute><LabsList /></ProtectedRoute>} />
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>

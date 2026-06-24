@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, timetable, lecturers, subjects
+from app.routes import auth, timetable, staff, subjects, classrooms, labs
 from app.core.database import connect_to_mongo, close_mongo_connection
 
 @asynccontextmanager
@@ -27,5 +27,7 @@ def read_root():
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(timetable.router, prefix="/timetable", tags=["Timetable"])
-app.include_router(lecturers.router, prefix="/lecturers", tags=["Lecturers"])
+app.include_router(staff.router, prefix="/staff", tags=["Staff"])
 app.include_router(subjects.router, prefix="/subjects", tags=["Subjects"])
+app.include_router(classrooms.router, prefix="/classrooms", tags=["Classrooms"])
+app.include_router(labs.router, prefix="/labs", tags=["Laboratories"])
