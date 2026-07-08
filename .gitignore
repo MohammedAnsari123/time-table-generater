@@ -1,0 +1,47 @@
+# Dependency directories
+node_modules/
+backend/venv/
+backend/.venv/
+backend/env/
+
+# Python cache & build directories
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+backend/.pytest_cache/
+backend/local_models/
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+
+# Output & Build directories
+dist/
+build/
+out/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
+
+# OS specific files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Log.db
+[Dd]esktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride

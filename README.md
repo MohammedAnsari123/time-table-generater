@@ -209,5 +209,31 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
+## 📈 Scaling & Architectural Enhancements
+
+To take this application to production and support larger institutions with high load and complex constraints, we recommend implementing the following enhancements:
+
+### 1. Asynchronous Task Queue for Generation
+LLM API calls and iterative validation loops are time-consuming and can cause synchronous HTTP requests to time out.
+- **Solution**: Implement a background job queue using **BullMQ** (Node.js/Redis) or **Celery** (Python/Redis).
+- **Flow**: When a user clicks "Generate", the Node.js backend pushes a job to Redis and returns a `job_id` immediately. The client polls the status of the job via HTTP or receives real-time progress updates via **WebSockets** (Socket.io).
+
+### 2. Hybrid AI + Constraint Programming Solver
+While LLMs are excellent at matching complex soft constraints and preferences, they are non-deterministic and can occasionally fail validation.
+- **Solution**: Use the LLM to generate an initial draft layout, and then feed that layout into a deterministic solver like **Google OR-Tools (CP-SAT)** in the Python microservice. This guarantees a mathematically correct, conflict-free timetable in milliseconds.
+
+### 3. Microservice Scale-Out
+Deploy the Node.js and Python servers in separate containers using **Docker**:
+- **Node.js Backend**: Scale horizontally behind an NGINX load balancer to handle concurrent CRUD requests and database operations.
+- **Python AI Microservice**: Deploy python workers that scale dynamically based on the queue size of pending generation requests.
+
+### 4. Caching & Database Indexing
+- Cache static lists (Lecturers, Classrooms, Subjects) in **Redis** to speed up page loads.
+- Create compound indexes on MongoDB collections for fast lookups:
+  - `db.timetables.createIndex({ "timetable_id": 1 })`
+  - `db.staff.createIndex({ "id": 1 })`
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License - feel free to modify and reuse.
