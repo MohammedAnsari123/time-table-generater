@@ -1,239 +1,180 @@
-# 🗓️ Intelligent AI Time Table Generator Tool
+# 🗓️ Intelligent AI Timetable Generator Tool
 
-A state-of-the-art, full-stack academic timetable scheduling system. The application combines **Large Language Model (LLM) reasoning** with **deterministic constraint-satisfaction algorithms** and an **interactive grid editor** to generate, refine, and manage conflict-free schedules across multiple divisions, classes, and instructors.
-
----
-
-## 📌 Core Features
-
-1. **AI-Driven Multi-Division Scheduling**
-   - Automatically builds conflict-free schedules for multiple academic divisions (e.g. Div A, B, C...) sequentially.
-   - Integrates the schedule of previous divisions as hard constraints into the generation loop of subsequent divisions to prevent overlaps.
-
-2. **Interactive Timetable Grid Editor**
-   - Toggle **Edit Mode** directly in the timetable display page.
-   - Click any slot (including **"Free"** slots) to open a premium pop-up modal.
-   - Assign/update the Subject, Lecturer, Room, and Session Type (Theory or Lab) dynamically.
-   - Use the "Remove Lecture" option to clear occupied slots back to "Free".
-   - Persists manual edits instantly to the MongoDB backend.
-
-3. **Timetable Generation Speed Optimization**
-   - Utilizes **`Qwen/Qwen2.5-Coder-32B-Instruct`** as the primary model on Hugging Face Serverless, responding in ~4 seconds.
-   - Implements a fast fallback chain including `Qwen/Qwen2.5-7B-Instruct` (<1 second) and `Llama-3.1-8B-Instruct`.
-   - Executes a local, deterministic **Constraint Repair Solver** (`repair_division_slots_full`) in <1ms to automatically resolve double-bookings and fill deficits. This guarantees validation success on the first attempt and eliminates slow LLM validation retry loops, cutting overall generation time from minutes to **under 15s per division**.
-
-4. **Centralized Master Data Management (MDM) System**
-   - **Staff Management**: Centralized repository of active/inactive staff, designation, department, available days, and designated weekly workload.
-   - **Subject Registry**: Curriculum manager mapped to specific department streams, semesters, and credits with automatic laboratory requirements.
-   - **Classrooms & Laboratories**: Distinguishes between general lecture rooms and specialized labs. Mapped directly into the timetable wizard and scheduling engine.
-
-5. **Universal Layout Responsiveness**
-   - Sleek and premium glassmorphic UI styled with TailwindCSS, optimized for:
-     - **Mobile Screens**: Collapsible sidebar, horizontal scroll overlays for timetable tables.
-     - **PC & Laptops**: Flexible grid grids and hover tooltip interactions.
-     - **4k Monitors**: Centered max-width boundaries up to 2560px with padded layouts.
-
-6. **Executive Dashboard Cockpit**
-   - Metrics counter (scheduled periods, active lecturers, and total generated timetables).
-   - Welcoming landing header displaying the current date and quick navigation to recent timetables.
-
-7. **Official Report Exports**
-   - Client-side download of division timetables as formatted **PDF documents** (using `jspdf` and `jspdf-autotable`) and **Word files** (using `docx`) complete with college letterhead headers and prepare/approval signature fields.
+A state-of-the-art, 3-tier academic timetable scheduling system. The application combines **Large Language Model (LLM) reasoning** with **deterministic constraint-satisfaction algorithms**, a **local heuristic fallback solver**, and an **interactive grid editor** to generate, refine, and manage conflict-free schedules across multiple divisions, classes, and instructors.
 
 ---
 
-## 🏗️ Architecture & Data Flow
+## 🏗️ Detailed Architecture
+
+The system is built on a robust 3-tier architecture separating the user interface, master data operations, and the AI scheduling engine.
 
 ```mermaid
-flowchart TD
-    subgraph Frontend ["React SPA (Vite + TailwindCSS)"]
+flowchart TB
+    subgraph Client ["Client Layer (React Single Page Application)"]
         UI["Dashboard & Grid Editor UI"]
-        API["Axios API Service"]
-        Export["PDF / DOCX Exporter"]
+        API["Axios API Client"]
+        Exporter["PDF / DOCX Exporter"]
     end
 
-    subgraph Backend ["FastAPI Server"]
-        Router["Router Gateways"]
-        HF["Hugging Face Client"]
-        Repair["Heuristic Repair Solver"]
-        Validator["Constraint Validator"]
+    subgraph NodeAPI ["Main Application Backend (Node.js + Express Server)"]
+        NodeRouter["Express Route Gateways"]
+        AuthService["JWT Authentication Service"]
+        DBController["Mongoose Controllers (CRUD)"]
+        ProxyService["AI Microservice Router Proxy"]
     end
 
-    subgraph Storage ["Database & Cloud"]
-        Mongo[("MongoDB Atlas")]
-        Cloudinary["Cloudinary CDN Header"]
+    subgraph PythonAI ["AI Microservice Engine (Python + FastAPI)"]
+        FastRouter["FastAPI Router Gateways"]
+        LLMService["LLM Prompt Service"]
+        RepairSolver["Deterministic Local Heuristic Repair Solver"]
+        Validator["Academic Constraint Validator"]
     end
 
+    subgraph Data ["Data Storage & Assets CDN"]
+        Mongo[("MongoDB Atlas Database")]
+        Cloudinary["Cloudinary CDN (Report Headers)"]
+    end
+
+    %% Interactions
     UI --> API
-    UI --> Export
-    API --> Router
-    Router --> Mongo
-    Router --> HF
-    Router --> Repair
-    Router --> Validator
-    Router --> Cloudinary
+    UI --> Exporter
+    API -->|Port 5001| NodeRouter
+    NodeRouter --> AuthService
+    NodeRouter --> DBController
+    NodeRouter --> ProxyService
+    DBController -->|Mongoose Schema| Mongo
+    ProxyService -->|Port 8000 POST| FastRouter
+    FastRouter --> LLMService
+    FastRouter --> RepairSolver
+    FastRouter --> Validator
+    FastRouter --> Cloudinary
 ```
 
-1. **Interactive Form Input**: The user configures institution settings, assigns active lecturers from the MDM registry, and schedules subjects per division.
-2. **LLM Synthesis**: The backend packages the metadata and requests structured JSON output from the Hugging Face Inference API.
-3. **Local Repair Solver**: The generated slots undergo deterministic conflict resolution to fix double-bookings, remove excess periods, and fill any remaining deficits.
-4. **Validation Check**: A validator validates the finalized schedule against constraints (lecturer availability, metadata limits, theory distribution).
-5. **Interactive Tweaking**: After generation, administrators can manually modify any cell on the grid (adding/editing/removing lectures) and save changes.
+### Architectural Responsibilities:
+1. **Frontend Layer (Vite + React)**: Renders the glassmorphic administration cockpit. Manages wizard step states, filters, grid modifications, and generates client-side exports (PDF and DOCX formats).
+2. **Main Application Backend (Node.js)**: Responsible for authentication (JWT), token signing, and direct CRUD operations on MongoDB. Proxies auto-allocation and timetable scheduling requests to the Python microservice.
+3. **AI microservice (FastAPI)**: Serves as a CPU-bound AI processing service. Converts master data into contextual prompt configurations, interfaces with Hugging Face serverless chat completion APIs, and validates schedules.
 
 ---
 
-## ⚙️ Environment Variables
+## 🧭 System Endpoints & Routing
 
-Create the following files in their respective folders:
+### 1. Main Node.js Application Backend (Port 5001)
 
-### 1. Backend (`/backend/.env`)
-```env
-PROJECT_NAME="Time Table Generator Tool"
-API_V1_STR="/api/v1"
-SECRET_KEY="YOUR_SUPER_SECRET_KEY_CHANGE_THIS"
-ALGORITHM="HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+#### 🔐 User Authentication
+- `POST` `/auth/register` — Register a new administrator account.
+- `POST` `/auth/login` — Authenticate credentials and return a signed JWT token.
 
-# MongoDB Connection
-MONGO_URI="mongodb+srv://<username>:<password>@cluster0.mongodb.net/timetable_db"
-MONGO_DB_NAME="timetable_db"
+#### 🎓 Staff (Lecturers) Registry
+- `GET` `/staff` — Retrieve all registered staff members (supports query parameter `q`).
+- `POST` `/staff` — Register a new lecturer profile.
+- `PUT` `/staff/:id` — Update designation, department, semesters, availability, or workload limits.
+- `DELETE` `/staff/:id` — Remove a lecturer profile.
 
-# HuggingFace API key
-HF_API_KEY="hf_xxxxxxxxxxxxxxxxxxxxxxxxxx"
+#### 📚 Subjects Directory
+- `GET` `/subjects` — Retrieve all subject details (supports query parameter `q`).
+- `POST` `/subjects` — Register a new subject.
+- `PUT` `/subjects/:code` — Update subject parameters.
+- `DELETE` `/subjects/:code` — Remove a subject from registry.
 
-# Cloudinary Assets Store
-CLOUDINARY_CLOUD_NAME="dhdgid9nr"
-CLOUDINARY_API_KEY="797739637432227"
-CLOUDINARY_API_SECRET="wE5lt7nLVQ2XEuAHTCXpJ-t8Y_0"
+#### 🏫 Classrooms & Laboratories
+- `GET` `/classrooms` — List classrooms.
+- `POST` `/classrooms` — Add a classroom.
+- `PUT` `/classrooms/:id` — Update classroom parameters.
+- `DELETE` `/classrooms/:id` — Delete a classroom.
+- `GET` `/labs` — List laboratories.
+- `POST` `/labs` — Add a lab room.
+- `PUT` `/labs/:id` — Update lab parameters.
+- `DELETE` `/labs/:id` — Delete a lab room.
+
+#### 🗓️ Timetable Operations
+- `GET` `/timetable/stats` — Fetch dashboard metrics.
+- `GET` `/timetable/list/all` — List generated timetables.
+- `GET` `/timetable/:timetableId` — Retrieve a specific timetable.
+- `POST` `/timetable/auto-allocate` — Auto-allocate subjects and teachers (forwarded to Python).
+- `POST` `/timetable/generate` — Generate a timetable from scratch (forwarded to Python).
+- `POST` `/timetable/regenerate` — Reschedule an existing timetable with updated constraints.
+- `PUT` `/timetable/:timetableId/slots` — Save manual grid overrides.
+- `DELETE` `/timetable/:timetableId` — Delete a timetable.
+
+---
+
+### 2. Python AI Backend Microservice (Port 8000)
+- `GET` `/` — Service health check.
+- `POST` `/timetable/auto-allocate` — Balances workload and assigns teachers to subjects.
+- `POST` `/timetable/generate` — Formulates single-division timetables sequentially.
+- `POST` `/timetable/regenerate` — Re-schedules slots under additional manual parameters.
+
+---
+
+## 🔄 Dynamic Timetable Workflow
+
+### 1. Sequential Workflow Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Administrator
+    participant FE as React Frontend (5173)
+    participant BE as Node.js Backend (5001)
+    participant PY as Python AI Backend (8000)
+    participant DB as MongoDB Atlas
+    participant HF as Hugging Face AI
+
+    Admin->>FE: Configure Department, Semester, and Divisions (Step 1)
+    Admin->>FE: Review and Filter Staff Workload Registry (Step 2)
+    Admin->>FE: Click "Auto-Allocate Subjects (AI)" (Step 3)
+    FE->>BE: POST /timetable/auto-allocate {dept, sem, divs, subjects, staff}
+    BE->>PY: Forward POST /timetable/auto-allocate
+    alt Hugging Face Online
+        PY->>HF: Call LLM Chat Completion (Workload Balance Prompt)
+        HF-->>PY: Return Balanced Divisions JSON
+    else Hugging Face Credit Exhausted / Offline
+        PY->>PY: Execute Local Heuristic Allocator Fallback
+    end
+    PY-->>BE: Return Auto-Allocate Divisions Response
+    BE-->>FE: Return Divisions JSON
+    FE-->>Admin: Render Balanced Division Configuration (Editable)
+    
+    Admin->>FE: Click "Generate All Timetables"
+    FE->>BE: POST /timetable/generate {metadata, divisions, staff, rooms}
+    BE->>PY: Forward POST /timetable/generate
+    loop For Each Division Sequentially
+        PY->>HF: Call LLM Chat Completion (Generate Schedule Prompt)
+        HF-->>PY: Return Division Schedule JSON
+        PY->>PY: Run Local Heuristic Repair Solver (Resolve clashes, group consecutive 2-hr Labs)
+        PY->>PY: Validate Schedule Constraints (Validation Loop)
+        Note over PY: Append generated slots as hard constraints for next divisions
+    end
+    PY-->>BE: Return Combined Timetable slots
+    BE->>DB: Save Timetable Document
+    BE-->>FE: Return Timetable Response
+    FE-->>Admin: Display Timetable Grid (Edit Mode / PDF Export)
 ```
 
-### 2. Frontend (`/frontend/.env`)
-```env
-VITE_API_URL=http://localhost:8000
-```
-
 ---
 
-## 🚀 Setup & Installation (Local Development)
+### 2. Detailed Textual Step-by-Step Workflow
 
-### 1. Backend Server Setup
-Ensure you have Python 3.10+ installed.
+#### Step 1: Resource Setup & Filtering
+1. **Master Registries**: Administrators pre-populate the **Staff**, **Subjects**, **Classrooms**, and **Laboratories** databases using the management dashboard pages.
+2. **Academic Filters**: When starting a new timetable creation, the wizard filters all subjects and teachers dynamically based on the selected **Department** and **Semester**.
 
-```bash
-# Navigate to backend directory
-cd backend
+#### Step 2: Auto-Allocation (AI Load Balancing)
+1. **Request Payload**: Clicking "Auto-Allocate Subjects" gathers active semester subjects and active teachers, and transmits them to the server.
+2. **AI Allocation**: The Hugging Face API distributes subjects evenly across divisions. Eligible lecturers are assigned based on their designated weekly workloads and preferred teaching subjects.
+3. **Local Fallback**: If Hugging Face is unavailable or your API key is out of credits (returning a `402` error), the Python engine runs the `local_heuristic_allocation` fallback algorithm to execute the load balancing locally in `<1ms`.
+4. **Interactive Adjustment**: The balanced divisions are returned to the frontend. Administrators can click **Edit** on any row to adjust lecturers, periods, or rooms before generation.
 
-# Create virtual environment
-python -m venv venv
+#### Step 3: Timetable Generation & Heuristic Repair
+1. **Sequential Generation**: Clicking "Generate All Timetables" starts the generation process. The microservice schedules divisions one-by-one.
+2. **AI Drafting**: The LLM compiles an initial schedule matching the specified constraints.
+3. **Local Heuristic Repair**: The drafted slots are processed by the Python **Constraint Repair Solver** (`repair_division_slots_full`):
+   - **Double-booking Correction**: Instantly relocates overlapping teacher or room slots.
+   - **Consecutive Lab Blocks**: Groups Lab subjects into **consecutive 2-period (2-hour) blocks** on the same day in a specialized laboratory room.
+   - **Distribution Optimization**: Spreads Theory lectures across working days to ensure at most 2 periods of a subject per day.
+4. **Validation Check**: The validator checks constraints. Once approved, these slots are marked as busy/occupied and passed as hard constraints to the next division.
 
-# Activate virtual environment
-# On Windows:
-# venv\Scripts\activate
-# On Linux/macOS:
-# source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Seed Database (Optional - loads initial staff, subjects, rooms)
-python seed_data.py
-
-# Start the uvicorn development server
-uvicorn app.main:app --reload
-```
-The local API documentation will be available at `http://localhost:8000/docs`.
-
-### 2. Frontend SPA Setup
-Ensure you have Node.js 18+ installed.
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install Node dependencies
-npm install
-
-# Start the Vite development server
-npm run dev
-```
-Open `http://localhost:5173` in your browser.
-
----
-
-## 📡 API Directory Catalog
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/auth/register` | Sign up new user credentials |
-| `POST` | `/auth/login` | Authenticate user credentials and return JWT token |
-| `POST` | `/timetable/generate` | Generate a new Division Timetable |
-| `POST` | `/timetable/regenerate` | Re-schedule a timetable with updated constraints |
-| `PUT` | `/timetable/{id}/slots` | Manually update/save the timetable slots array |
-| `GET` | `/timetable/{id}` | Retrieve timetable slots by unique ID |
-| `GET` | `/timetable/list/all` | Fetch all timetables sorted by `created_at` DESC (backward-compatible) |
-| `DELETE` | `/timetable/{id}` | Delete a timetable from the database |
-| `GET` | `/timetable/stats` | Retrieve metrics (scheduled slots, teachers, classes) |
-| `GET` | `/staff` | Query active staff members pool with optional search parameter `q` |
-| `POST` | `/staff` | Register a new staff member to the database |
-| `PUT` | `/staff/{id}` | Update an existing staff member profile |
-| `DELETE` | `/staff/{id}` | Delete a staff member from the database |
-| `GET` | `/subjects` | Query global subjects registry with optional search parameter `q` |
-| `POST` | `/subjects` | Add a new subject to the database |
-| `PUT` | `/subjects/{code}` | Update subject parameters |
-| `DELETE` | `/subjects/{code}` | Remove a subject from the database |
-| `GET` | `/classrooms` | Query classrooms registry with search filter `q` |
-| `POST` | `/classrooms` | Add a new classroom to the database |
-| `PUT` | `/classrooms/{id}` | Update classroom capacity, type, and status |
-| `DELETE` | `/classrooms/{id}` | Delete a classroom from the database |
-| `GET` | `/labs` | Query laboratories registry with search filter `q` |
-| `POST` | `/labs` | Add a new laboratory to the database |
-| `PUT` | `/labs/{id}` | Update laboratory capacity, supported subjects, and status |
-| `DELETE` | `/labs/{id}` | Delete a laboratory from the database |
-
----
-
-## 🌐 Production Deployment Guide
-
-### Backend (Render or Koyeb)
-1. Register a web service pointing to your GitHub repository.
-2. Set the **Root Directory** to `backend`.
-3. Set the **Build Command** to `pip install -r requirements.txt`.
-4. Set the **Start Command** to `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-5. Enter all environment variable fields from the `/backend/.env` file.
-
-### Frontend (Vercel or Netlify)
-1. Create a project pointing to your GitHub repository.
-2. Set the **Root Directory** to `frontend`.
-3. Set the build environment variable `VITE_API_URL` to point to your live deployed backend URL.
-4. Deploy! Vite output is automatically routed to static hosting.
-
----
-
-## 📈 Scaling & Architectural Enhancements
-
-To take this application to production and support larger institutions with high load and complex constraints, we recommend implementing the following enhancements:
-
-### 1. Asynchronous Task Queue for Generation
-LLM API calls and iterative validation loops are time-consuming and can cause synchronous HTTP requests to time out.
-- **Solution**: Implement a background job queue using **BullMQ** (Node.js/Redis) or **Celery** (Python/Redis).
-- **Flow**: When a user clicks "Generate", the Node.js backend pushes a job to Redis and returns a `job_id` immediately. The client polls the status of the job via HTTP or receives real-time progress updates via **WebSockets** (Socket.io).
-
-### 2. Hybrid AI + Constraint Programming Solver
-While LLMs are excellent at matching complex soft constraints and preferences, they are non-deterministic and can occasionally fail validation.
-- **Solution**: Use the LLM to generate an initial draft layout, and then feed that layout into a deterministic solver like **Google OR-Tools (CP-SAT)** in the Python microservice. This guarantees a mathematically correct, conflict-free timetable in milliseconds.
-
-### 3. Microservice Scale-Out
-Deploy the Node.js and Python servers in separate containers using **Docker**:
-- **Node.js Backend**: Scale horizontally behind an NGINX load balancer to handle concurrent CRUD requests and database operations.
-- **Python AI Microservice**: Deploy python workers that scale dynamically based on the queue size of pending generation requests.
-
-### 4. Caching & Database Indexing
-- Cache static lists (Lecturers, Classrooms, Subjects) in **Redis** to speed up page loads.
-- Create compound indexes on MongoDB collections for fast lookups:
-  - `db.timetables.createIndex({ "timetable_id": 1 })`
-  - `db.staff.createIndex({ "id": 1 })`
-
----
-
-## 📄 License
-This project is licensed under the MIT License - feel free to modify and reuse.
+#### Step 4: Grid Editing & Official Export
+1. **Fine-Tuning**: Administrators view the final multi-division schedule. Toggling **Edit Mode** opens a modal to manually update or remove any cell.
+2. **Official Reports**: Download division timetables as formatted **PDF** or **Word** documents complete with letterhead, metadata, and validation signature zones.
