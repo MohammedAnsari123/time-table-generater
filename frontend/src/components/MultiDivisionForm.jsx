@@ -3,7 +3,7 @@ import { TextInput, NumberInput } from './FormInputs';
 import { Plus, Trash, Users, BookOpen } from 'lucide-react';
 import { getSubjects } from '../services/api';
 
-const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
+const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => {
     const [activeDivIndex, setActiveDivIndex] = useState(0);
     const [dbSubjects, setDbSubjects] = useState([]);
 
@@ -11,13 +11,18 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers }) => {
         const fetchDbSubjects = async () => {
             try {
                 const data = await getSubjects();
-                setDbSubjects(data);
+                const filtered = data.filter(sub => 
+                    !sub.semesters || 
+                    sub.semesters.length === 0 || 
+                    sub.semesters.includes(semester)
+                );
+                setDbSubjects(filtered);
             } catch (err) {
                 console.error("Failed to load database subjects", err);
             }
         };
         fetchDbSubjects();
-    }, []);
+    }, [semester]);
 
     // Ensure at least one division exists
     useEffect(() => {

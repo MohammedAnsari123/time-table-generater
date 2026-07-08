@@ -45,6 +45,10 @@ const StaffSchema = new mongoose.Schema({
     type: [String],
     default: null
   },
+  semesters: {
+    type: [Number],
+    default: [1, 2, 3, 4, 5, 6, 7, 8]
+  },
   status: {
     type: String,
     enum: ["Active", "Inactive"],

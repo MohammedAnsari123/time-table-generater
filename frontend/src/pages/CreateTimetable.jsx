@@ -65,8 +65,8 @@ const CreateTimetable = () => {
             <div className="flex-1 max-w-5xl mx-auto w-full px-4 pb-12">
                 <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
                     {step === 1 && <Step1Metadata metadata={metadata} handleMetadataChange={handleMetadataChange} />}
-                    {step === 2 && <Step2GlobalResources lecturers={lecturers} setLecturers={setLecturers} classrooms={classrooms} setClassrooms={setClassrooms} labs={labs} setLabs={setLabs} />}
-                    {step === 3 && <MultiDivisionForm divisions={divisions} setDivisions={setDivisions} lecturers={lecturers} />}
+                    {step === 2 && <Step2GlobalResources lecturers={lecturers} setLecturers={setLecturers} classrooms={classrooms} setClassrooms={setClassrooms} labs={labs} setLabs={setLabs} selectedSemester={metadata.semester} />}
+                    {step === 3 && <MultiDivisionForm divisions={divisions} setDivisions={setDivisions} lecturers={lecturers} semester={metadata.semester} />}
 
                     {/* Footer Navigation */}
                     <div className="mt-10 pt-6 border-t border-gray-100 flex justify-between">

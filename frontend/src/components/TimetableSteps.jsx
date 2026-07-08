@@ -4,25 +4,94 @@ import { Plus, Trash, Check, UserPlus, Loader2, Sparkles, Building, AlertCircle 
 import { getStaff, getClassrooms, getLabs } from '../services/api';
 
 // --- Step 1: Metadata ---
-export const Step1Metadata = ({ metadata, handleMetadataChange }) => (
-    <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-600 animate-pulse" />
-            Academic Metadata
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextInput label="Institution Name" value={metadata.institution_name} onChange={e => handleMetadataChange('institution_name', e.target.value)} />
-            <TextInput label="Department" value={metadata.department} onChange={e => handleMetadataChange('department', e.target.value)} />
-            <NumberInput label="Semester" value={metadata.semester} onChange={e => handleMetadataChange('semester', parseInt(e.target.value))} />
-            <TextInput label="Academic Year" value={metadata.academic_year} onChange={e => handleMetadataChange('academic_year', e.target.value)} />
-            <NumberInput label="Periods Per Day" value={metadata.periods_per_day} onChange={e => handleMetadataChange('periods_per_day', parseInt(e.target.value))} />
+export const Step1Metadata = ({ metadata, handleMetadataChange }) => {
+    const deptOptions = [
+        { value: 'Computer Science', label: 'Computer Science' },
+        { value: 'Information Technology', label: 'Information Technology' },
+        { value: 'Electrical Engineering', label: 'Electrical Engineering' },
+        { value: 'Mechanical Engineering', label: 'Mechanical Engineering' },
+        { value: 'Civil Engineering', label: 'Civil Engineering' },
+        { value: 'Other', label: 'Other (Custom)' }
+    ];
+
+    const semesterOptions = [
+        { value: '1', label: 'Semester 1' },
+        { value: '2', label: 'Semester 2' },
+        { value: '3', label: 'Semester 3' },
+        { value: '4', label: 'Semester 4' },
+        { value: '5', label: 'Semester 5' },
+        { value: '6', label: 'Semester 6' },
+        { value: '7', label: 'Semester 7' },
+        { value: '8', label: 'Semester 8' }
+    ];
+
+    const isPredefined = deptOptions.some(opt => opt.value === metadata.department && opt.value !== 'Other');
+    const [isOther, setIsOther] = useState(metadata.department ? !isPredefined : false);
+    const [customDept, setCustomDept] = useState(isOther ? metadata.department : '');
+
+    const handleDeptSelect = (e) => {
+        const val = e.target.value;
+        if (val === 'Other') {
+            setIsOther(true);
+            handleMetadataChange('department', customDept);
+        } else {
+            setIsOther(false);
+            handleMetadataChange('department', val);
+        }
+    };
+
+    const handleCustomDeptChange = (e) => {
+        const val = e.target.value;
+        setCustomDept(val);
+        handleMetadataChange('department', val);
+    };
+
+    return (
+        <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-600 animate-pulse" />
+                Academic Metadata
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextInput label="Institution Name" value={metadata.institution_name} onChange={e => handleMetadataChange('institution_name', e.target.value)} />
+                
+                <div className="flex flex-col">
+                    <SelectInput 
+                        label="Department" 
+                        value={isOther ? 'Other' : metadata.department} 
+                        onChange={handleDeptSelect} 
+                        options={deptOptions} 
+                    />
+                    {isOther && (
+                        <div className="mt-1">
+                            <TextInput 
+                                label="Custom Department Name" 
+                                value={customDept} 
+                                onChange={handleCustomDeptChange} 
+                                placeholder="Enter department name" 
+                                required 
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <SelectInput 
+                    label="Semester" 
+                    value={metadata.semester.toString()} 
+                    onChange={e => handleMetadataChange('semester', parseInt(e.target.value))} 
+                    options={semesterOptions} 
+                />
+
+                <TextInput label="Academic Year" value={metadata.academic_year} onChange={e => handleMetadataChange('academic_year', e.target.value)} />
+                <NumberInput label="Periods Per Day" value={metadata.periods_per_day} onChange={e => handleMetadataChange('periods_per_day', parseInt(e.target.value))} />
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 // --- Step 2: Global Resources ---
-export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setClassrooms, labs = [], setLabs }) => {
+export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setClassrooms, labs = [], setLabs, selectedSemester }) => {
     const [dbStaff, setDbStaff] = useState([]);
     const [dbRooms, setDbRooms] = useState([]);
     const [dbLabs, setDbLabs] = useState([]);
@@ -32,7 +101,7 @@ export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setC
 
     useEffect(() => {
         loadResources();
-    }, []);
+    }, [selectedSemester]);
 
     const loadResources = async () => {
         setLoading(true);
@@ -47,15 +116,23 @@ export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setC
 
             // Filter out inactive ones
             const activeStaff = staffData.filter(s => s.status === 'Active');
+            
+            // Filter staff by semester
+            const filteredStaff = activeStaff.filter(member => 
+                !member.semesters || 
+                member.semesters.length === 0 || 
+                member.semesters.includes(selectedSemester)
+            );
+
             const activeRooms = roomsData.filter(r => r.status === 'Available');
             const activeLabs = labsData.filter(l => l.status === 'Available');
 
-            setDbStaff(activeStaff);
+            setDbStaff(filteredStaff);
             setDbRooms(activeRooms);
             setDbLabs(activeLabs);
 
             // Pre-select all by default if the state arrays are empty
-            if (lecturers.length === 0) setLecturers(activeStaff);
+            if (lecturers.length === 0) setLecturers(filteredStaff);
             if (classrooms.length === 0) setClassrooms(activeRooms);
             if (labs.length === 0) setLabs(activeLabs);
 

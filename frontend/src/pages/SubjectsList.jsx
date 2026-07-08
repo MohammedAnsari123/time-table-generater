@@ -23,6 +23,7 @@ const SubjectsList = () => {
         periods_per_week: 4,
         assigned_lecturer_id: '',
         semester: 1,
+        semesters: [1, 2, 3, 4, 5, 6, 7, 8],
         department: '',
         credits: 3,
         lab_requirement: false
@@ -68,6 +69,7 @@ const SubjectsList = () => {
             periods_per_week: 4,
             assigned_lecturer_id: '',
             semester: 1,
+            semesters: [1, 2, 3, 4, 5, 6, 7, 8],
             department: departments[0],
             credits: 3,
             lab_requirement: false
@@ -85,11 +87,27 @@ const SubjectsList = () => {
             periods_per_week: subject.periods_per_week || 4,
             assigned_lecturer_id: subject.assigned_lecturer_id || '',
             semester: subject.semester || 1,
+            semesters: subject.semesters || [1, 2, 3, 4, 5, 6, 7, 8],
             department: subject.department || departments[0],
             credits: subject.credits || 3,
             lab_requirement: subject.lab_requirement || false
         });
         setIsEditOpen(true);
+    };
+
+    const handleSemesterToggle = (sem) => {
+        const currentSems = [...formData.semesters];
+        if (currentSems.includes(sem)) {
+            setFormData({
+                ...formData,
+                semesters: currentSems.filter(s => s !== sem)
+            });
+        } else {
+            setFormData({
+                ...formData,
+                semesters: [...currentSems, sem].sort((a, b) => a - b)
+            });
+        }
     };
 
     const handleAdd = async (e) => {
@@ -108,6 +126,7 @@ const SubjectsList = () => {
                 periods_per_week: parseInt(formData.periods_per_week),
                 assigned_lecturer_id: formData.assigned_lecturer_id || null,
                 semester: parseInt(formData.semester),
+                semesters: formData.semesters,
                 department: formData.department,
                 credits: parseInt(formData.credits),
                 lab_requirement: formData.lab_requirement
@@ -139,6 +158,7 @@ const SubjectsList = () => {
                 periods_per_week: parseInt(formData.periods_per_week),
                 assigned_lecturer_id: formData.assigned_lecturer_id || null,
                 semester: parseInt(formData.semester),
+                semesters: formData.semesters,
                 department: formData.department,
                 credits: parseInt(formData.credits),
                 lab_requirement: formData.lab_requirement
@@ -262,7 +282,9 @@ const SubjectsList = () => {
                                             </span>
                                         </div>
                                         <p className="text-xs font-mono text-slate-400 mt-0.5">Code: {subject.code}</p>
-                                        <p className="text-xs text-slate-500 mt-1">{subject.department} • Sem {subject.semester}</p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            {subject.department} • Semesters: {subject.semesters && subject.semesters.length > 0 ? subject.semesters.join(', ') : (subject.semester || 'All')}
+                                        </p>
                                     </div>
 
                                     <div className="space-y-2 pt-2 border-t border-slate-50 text-xs text-slate-600">
@@ -438,6 +460,28 @@ const SubjectsList = () => {
                                         ))}
                                     </select>
                                 </div>
+                                <div className="flex flex-col space-y-1 sm:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Offered Semesters</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                                            const active = formData.semesters.includes(s);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={s}
+                                                    onClick={() => handleSemesterToggle(s)}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                                                        active 
+                                                            ? 'bg-purple-500 text-white border-purple-500 shadow-sm' 
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    Sem {s}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                                 <div className="flex items-center gap-2 sm:col-span-2 pt-2">
                                     <input 
                                         type="checkbox" 
@@ -589,6 +633,28 @@ const SubjectsList = () => {
                                             <option key={st.id} value={st.id}>{st.name} ({st.designation})</option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className="flex flex-col space-y-1 sm:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Offered Semesters</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                                            const active = formData.semesters.includes(s);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={s}
+                                                    onClick={() => handleSemesterToggle(s)}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                                                        active 
+                                                            ? 'bg-purple-500 text-white border-purple-500 shadow-sm' 
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    Sem {s}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2 sm:col-span-2 pt-2">
                                     <input 

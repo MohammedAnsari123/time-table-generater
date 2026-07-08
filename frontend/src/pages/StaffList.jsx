@@ -26,6 +26,7 @@ const StaffList = () => {
         max_periods_per_week: 20,
         available_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
         preferred_slots: '',
+        semesters: [1, 2, 3, 4, 5, 6, 7, 8],
         status: 'Active'
     });
 
@@ -65,6 +66,7 @@ const StaffList = () => {
             max_periods_per_week: 20,
             available_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
             preferred_slots: '',
+            semesters: [1, 2, 3, 4, 5, 6, 7, 8],
             status: 'Active'
         });
         setIsAddOpen(true);
@@ -84,6 +86,7 @@ const StaffList = () => {
             max_periods_per_week: member.max_periods_per_week || 20,
             available_days: member.available_days || weekdays,
             preferred_slots: member.preferred_slots?.join(', ') || '',
+            semesters: member.semesters || [1, 2, 3, 4, 5, 6, 7, 8],
             status: member.status || 'Active'
         });
         setIsEditOpen(true);
@@ -100,6 +103,21 @@ const StaffList = () => {
             setFormData({
                 ...formData,
                 available_days: [...currentDays, day]
+            });
+        }
+    };
+    
+    const handleSemesterToggle = (sem) => {
+        const currentSems = [...formData.semesters];
+        if (currentSems.includes(sem)) {
+            setFormData({
+                ...formData,
+                semesters: currentSems.filter(s => s !== sem)
+            });
+        } else {
+            setFormData({
+                ...formData,
+                semesters: [...currentSems, sem].sort((a, b) => a - b)
             });
         }
     };
@@ -124,6 +142,7 @@ const StaffList = () => {
                 max_periods_per_week: parseInt(formData.max_periods_per_week),
                 available_days: formData.available_days,
                 preferred_slots: formData.preferred_slots ? formData.preferred_slots.split(',').map(s => s.trim()).filter(Boolean) : null,
+                semesters: formData.semesters,
                 status: formData.status
             };
             await createStaff(payload);
@@ -157,6 +176,7 @@ const StaffList = () => {
                 max_periods_per_week: parseInt(formData.max_periods_per_week),
                 available_days: formData.available_days,
                 preferred_slots: formData.preferred_slots ? formData.preferred_slots.split(',').map(s => s.trim()).filter(Boolean) : null,
+                semesters: formData.semesters,
                 status: formData.status
             };
             await updateStaff(currentMember.id, payload);
@@ -295,6 +315,10 @@ const StaffList = () => {
                                     <div className="flex items-start gap-2">
                                         <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
                                         <span className="leading-relaxed">Available: {member.available_days?.join(', ') || 'None'}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <BookOpen className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                        <span className="leading-relaxed">Semesters: {member.semesters && member.semesters.length > 0 ? member.semesters.join(', ') : 'All (1-8)'}</span>
                                     </div>
                                 </div>
 
@@ -492,6 +516,28 @@ const StaffList = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col space-y-1 sm:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teaching Semesters</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                                            const active = formData.semesters.includes(s);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={s}
+                                                    onClick={() => handleSemesterToggle(s)}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                                                        active 
+                                                            ? 'bg-purple-500 text-white border-purple-500 shadow-sm' 
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    Sem {s}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col space-y-1 sm:col-span-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Employment Status</label>
                                     <div className="flex gap-4 mt-1">
                                         {['Active', 'Inactive'].map(s => (
@@ -671,6 +717,28 @@ const StaffList = () => {
                                                     }`}
                                                 >
                                                     {d}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col space-y-1 sm:col-span-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Teaching Semesters</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                                            const active = formData.semesters.includes(s);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={s}
+                                                    onClick={() => handleSemesterToggle(s)}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                                                        active 
+                                                            ? 'bg-purple-500 text-white border-purple-500 shadow-sm' 
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    Sem {s}
                                                 </button>
                                             );
                                         })}

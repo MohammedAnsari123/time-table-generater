@@ -30,6 +30,10 @@ const SubjectSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  semesters: {
+    type: [Number],
+    default: [1, 2, 3, 4, 5, 6, 7, 8]
+  },
   department: {
     type: String,
     default: ""

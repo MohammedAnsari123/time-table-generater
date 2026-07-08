@@ -27,6 +27,7 @@ class Staff(BaseModel):
     max_periods_per_week: int = 20
     available_days: List[str] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     preferred_slots: Optional[List[str]] = None
+    semesters: List[int] = []
     status: Literal["Active", "Inactive"] = "Active"
 
 # Maintain compatibility alias for the scheduling engine
@@ -39,6 +40,7 @@ class Subject(BaseModel):
     periods_per_week: int
     assigned_lecturer_id: Optional[str] = None
     semester: Optional[int] = 1
+    semesters: List[int] = []
     department: Optional[str] = ""
     credits: Optional[int] = 3
     lab_requirement: bool = False
