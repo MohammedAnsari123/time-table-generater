@@ -1,6 +1,8 @@
 const axios = require('axios');
 const { randomUUID } = require('crypto');
 const Timetable = require('../models/Timetable');
+const Subject = require('../models/Subject');
+const Staff = require('../models/Staff');
 
 exports.getStats = async (req, res) => {
   try {
@@ -194,5 +196,93 @@ exports.regenerate = async (req, res) => {
       return res.status(error.response.status).json(error.response.data);
     }
     return res.status(500).json({ detail: `Server error during regeneration: ${error.message}` });
+  }
+};
+
+exports.autoAllocate = async (req, res) => {
+  try {
+    const { department, semester, divisions } = req.body;
+
+    if (!department || !semester || !divisions || !Array.isArray(divisions)) {
+      return res.status(400).json({ detail: "department, semester, and divisions are required" });
+    }
+
+    // 1. Fetch subjects for this department and semester
+    const subjects = await Subject.find({
+      department: { $regex: new RegExp(`^${department}$`, 'i') },
+      semesters: parseInt(semester)
+    });
+
+    // 2. Fetch active staff for this department and semester
+    const lecturers = await Staff.find({
+      department: { $regex: new RegExp(`^${department}$`, 'i') },
+      semesters: parseInt(semester),
+      status: 'Active'
+    });
+
+    // Workload tracking map: lecturerId -> currentPeriods
+    const workload = {};
+    lecturers.forEach(l => {
+      workload[l.id] = 0;
+    });
+
+    const updatedDivisions = divisions.map(div => {
+      const allocatedSubjects = [];
+
+      subjects.forEach(sub => {
+        // Find eligible lecturers who can teach this subject
+        let eligible = lecturers.filter(l => 
+          (l.subjects && (l.subjects.includes(sub.code) || l.subjects.includes(sub.name))) ||
+          l.id === sub.assigned_lecturer_id
+        );
+
+        let chosenLecturerId = null;
+
+        if (eligible.length > 0) {
+          // Sort by current workload (ascending) to balance workload equally
+          eligible.sort((a, b) => (workload[a.id] || 0) - (workload[b.id] || 0));
+          
+          // Select the one with the lowest workload who hasn't exceeded max_periods_per_week
+          const best = eligible.find(l => {
+            const currentWork = workload[l.id] || 0;
+            return currentWork + sub.periods_per_week <= (l.max_periods_per_week || 20);
+          });
+
+          if (best) {
+            chosenLecturerId = best.id;
+            workload[best.id] = (workload[best.id] || 0) + sub.periods_per_week;
+          } else {
+            // Fallback to the first eligible if all are overloaded
+            chosenLecturerId = eligible[0].id;
+            workload[eligible[0].id] = (workload[eligible[0].id] || 0) + sub.periods_per_week;
+          }
+        } else {
+          // Fallback to default database assigned lecturer if no custom match found
+          chosenLecturerId = sub.assigned_lecturer_id || null;
+        }
+
+        allocatedSubjects.push({
+          code: sub.code,
+          name: sub.name,
+          type: sub.type,
+          periods_per_week: sub.periods_per_week,
+          assigned_lecturer_id: chosenLecturerId,
+          semester: sub.semester,
+          department: sub.department,
+          credits: sub.credits,
+          lab_requirement: sub.lab_requirement
+        });
+      });
+
+      return {
+        ...div,
+        subjects: allocatedSubjects
+      };
+    });
+
+    return res.status(200).json({ divisions: updatedDivisions });
+  } catch (error) {
+    console.error("Auto allocate error:", error);
+    return res.status(500).json({ detail: `Server error during auto-allocation: ${error.message}` });
   }
 };

@@ -45,6 +45,11 @@ export const generateTimetable = async (data) => {
     return response.data;
 };
 
+export const autoAllocateSubjects = async (data) => {
+    const response = await api.post('/timetable/auto-allocate', data);
+    return response.data;
+};
+
 export const getTimetable = async (id) => {
     const response = await api.get(`/timetable/${id}`);
     return response.data;

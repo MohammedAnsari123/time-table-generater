@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { TextInput, NumberInput } from './FormInputs';
-import { Plus, Trash, Users, BookOpen } from 'lucide-react';
-import { getSubjects } from '../services/api';
+import { Plus, Trash, Users, BookOpen, Sparkles, Loader2, Edit2, X } from 'lucide-react';
+import { getSubjects, autoAllocateSubjects } from '../services/api';
 
-const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => {
+const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, department }) => {
     const [activeDivIndex, setActiveDivIndex] = useState(0);
     const [dbSubjects, setDbSubjects] = useState([]);
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [allocating, setAllocating] = useState(false);
 
     useEffect(() => {
         const fetchDbSubjects = async () => {
@@ -59,13 +61,35 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
         lab_requirement: false
     });
 
+    const handleAutoAllocate = async () => {
+        if (!department) {
+            alert("Please select a department in Step 1 first.");
+            return;
+        }
+        setAllocating(true);
+        try {
+            const res = await autoAllocateSubjects({
+                department,
+                semester,
+                divisions
+            });
+            if (res && res.divisions) {
+                setDivisions(res.divisions);
+            }
+        } catch (err) {
+            console.error("Auto allocation error", err);
+            alert("Failed to auto-allocate: " + (err.response?.data?.detail || err.message));
+        } finally {
+            setAllocating(false);
+        }
+    };
+
     const addSubjectToDiv = () => {
         if (!tempSubject.code || !tempSubject.name) return;
         const newDivs = [...divisions];
-        // Ensure subjects array exists
         if (!newDivs[activeDivIndex].subjects) newDivs[activeDivIndex].subjects = [];
 
-        newDivs[activeDivIndex].subjects.push({
+        const subPayload = {
             code: tempSubject.code,
             name: tempSubject.name,
             type: tempSubject.type,
@@ -75,16 +99,44 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
             department: tempSubject.department || '',
             credits: parseInt(tempSubject.credits || 3),
             lab_requirement: tempSubject.lab_requirement || false
-        });
+        };
+
+        if (editingIndex !== null) {
+            newDivs[activeDivIndex].subjects[editingIndex] = subPayload;
+            setEditingIndex(null);
+        } else {
+            newDivs[activeDivIndex].subjects.push(subPayload);
+        }
+
         setDivisions(newDivs);
         setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '', semester: 1, department: '', credits: 3, lab_requirement: false });
     };
 
+    const startEditingSubject = (sub, idx) => {
+        setEditingIndex(idx);
+        setTempSubject({
+            code: sub.code,
+            name: sub.name,
+            type: sub.type,
+            periods: sub.periods_per_week,
+            assigned_lecturer_id: sub.assigned_lecturer_id || '',
+            semester: sub.semester || 1,
+            department: sub.department || '',
+            credits: sub.credits || 3,
+            lab_requirement: sub.lab_requirement || false
+        });
+    };
+
+    const cancelEditingSubject = () => {
+        setEditingIndex(null);
+        setTempSubject({ code: '', name: '', type: 'Theory', periods: 4, assigned_lecturer_id: '', semester: 1, department: '', credits: 3, lab_requirement: false });
+    };
 
     const removeSubjectFromDiv = (subIndex) => {
         const newDivs = [...divisions];
         newDivs[activeDivIndex].subjects = newDivs[activeDivIndex].subjects.filter((_, i) => i !== subIndex);
         setDivisions(newDivs);
+        if (editingIndex === subIndex) setEditingIndex(null);
     };
 
     if (divisions.length === 0) return null;
@@ -110,8 +162,25 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
                         )}
                     </div>
                 ))}
-                <button onClick={addDivision} className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 flex justify-center items-center transition-colors">
+                 <button onClick={addDivision} className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-indigo-400 hover:text-indigo-600 flex justify-center items-center transition-colors">
                     <Plus className="h-4 w-4 mr-1" /> Add Division
+                </button>
+                <button 
+                    onClick={handleAutoAllocate}
+                    disabled={allocating}
+                    className="w-full mt-3 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-sm hover:shadow flex justify-center items-center transition-all disabled:opacity-75 text-sm"
+                >
+                    {allocating ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                            Allocating...
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="h-4 w-4 mr-1.5 animate-pulse" />
+                            Auto-Allocate Subjects (AI)
+                        </>
+                    )}
                 </button>
             </div>
 
@@ -139,7 +208,9 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
 
                 {/* Subject Adder */}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
-                    <h4 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Add Subject to Div {activeDiv.name}</h4>
+                    <h4 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">
+                        {editingIndex !== null ? `Edit Subject in Div ${activeDiv.name}` : `Add Subject to Div ${activeDiv.name}`}
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
                         <div className="md:col-span-4 flex flex-col">
                             <label className="text-sm font-medium text-gray-700 mb-1">Select Subject</label>
@@ -201,9 +272,26 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
                             </select>
                         </div>
                     </div>
-                    <button onClick={addSubjectToDiv} className="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center justify-center text-sm shadow-sm transition-colors">
-                        <Plus className="h-4 w-4 mr-1" /> Add Subject to Division {activeDiv.name}
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={addSubjectToDiv} className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center justify-center text-sm shadow-sm transition-colors">
+                            {editingIndex !== null ? (
+                                <>
+                                    <Sparkles className="h-4 w-4 mr-1" />
+                                    Update Subject in Division {activeDiv.name}
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Add Subject to Division {activeDiv.name}
+                                </>
+                            )}
+                        </button>
+                        {editingIndex !== null && (
+                            <button onClick={cancelEditingSubject} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm transition-colors">
+                                Cancel
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Subject List */}
@@ -230,9 +318,14 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester }) => 
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={() => removeSubjectFromDiv(idx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors">
-                                    <Trash className="h-4 w-4" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={() => startEditingSubject(s, idx)} className="text-gray-400 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors" title="Edit subject">
+                                        <Edit2 className="h-4 w-4" />
+                                    </button>
+                                    <button onClick={() => removeSubjectFromDiv(idx)} className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors" title="Delete subject">
+                                        <Trash className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     ) : (
