@@ -54,7 +54,7 @@ def build_single_division_prompt(request: TimetableRequest, current_division: Di
     CONSTRAINTS:
     1. **NO DOUBLE BOOKING**: You MUST NOT assign a Lecturer or Room listed in "ALREADY OCCUPIED RESOURCES" for that specific Day/Period.
     2. **Lecturer Availability**: Respect the `available_days` for each lecturer.
-    3. **Labs**: Must be consecutive periods (e.g., Period 1-2, 3-4, etc.) if possible.
+    3. **Labs**: A Lab session MUST always be 2 consecutive periods on the same day (e.g., Period 1-2, 3-4, 5-6). A single isolated 1-hour Lab slot is strictly prohibited.
     4. **Subject Load**: You MUST assign exactly the number of periods specified for each subject for this division.
     5. **Output**: Generate slots ONLY for Division {current_division.name}.
     6. **DISTRIBUTION**: SPREAD subjects across the week. Do NOT schedule more than 2 periods of the same Theory subject on the same day unless unavoidable.

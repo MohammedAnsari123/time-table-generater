@@ -289,10 +289,13 @@ def repair_division_slots_full(
     # Map subjects by code
     subjects_by_code = {s.code: s for s in div.subjects}
     
-    # 2. Filter out invalid slots
+    # 2. Filter out invalid slots and skip Lab slots (so Labs are always scheduled in consecutive pairs)
     cleaned_slots = []
     for slot in division_slots:
         if slot.division == division_name and slot.subject in subjects_by_code:
+            # Skip Labs here so they become deficits and are generated in pairs below
+            if subjects_by_code[slot.subject].type == "Lab":
+                continue
             cleaned_slots.append(slot)
 
     # 3. Separate slots by subject and enforce max periods (remove excess)
@@ -392,6 +395,53 @@ def repair_division_slots_full(
             
         return None
 
+    def find_free_consecutive_lab_slots(subject_code, current_slots):
+        sub = subjects_by_code[subject_code]
+        lecturer_id = sub.assigned_lecturer_id
+        lect = lecturers_by_id.get(lecturer_id)
+        
+        busy_lecturers, busy_rooms = get_busy_maps(current_slots)
+        division_occupied = get_division_occupied(current_slots)
+        
+        working_days = request.metadata.working_days
+        # Search pairs: 1-2, 3-4, 5-6, 6-7 (avoiding single hour labs)
+        for day in working_days:
+            if lect and day not in lect.available_days:
+                continue
+                
+            # Iterate pairs of periods (e.g. 1-2, 3-4, 5-6, 6-7)
+            periods_count = request.metadata.periods_per_day
+            pairs = []
+            for p in range(1, periods_count, 2):
+                if p + 1 <= periods_count:
+                    pairs.append((p, p + 1))
+            # If periods count is odd (like 7), let's also allow scheduling in the last two periods (6-7)
+            if periods_count % 2 != 0 and periods_count >= 2:
+                if (periods_count - 1, periods_count) not in pairs:
+                    pairs.append((periods_count - 1, periods_count))
+
+            for p1, p2 in pairs:
+                # Check division occupied for both slots
+                if (day, p1) in division_occupied or (day, p2) in division_occupied:
+                    continue
+                    
+                # Check lecturer conflict for both slots
+                if (day, p1, lecturer_id) in busy_lecturers or (day, p2, lecturer_id) in busy_lecturers:
+                    continue
+                    
+                # Find a room of type "Lab" free for both periods
+                available_room = None
+                for room in request.classrooms:
+                    if room.type != "Lab" or room.status != "Available":
+                        continue
+                    if (day, p1, room.id) not in busy_rooms and (day, p2, room.id) not in busy_rooms:
+                        available_room = room.id
+                        break
+                        
+                if available_room:
+                    return day, p1, p2, available_room
+        return None
+
     # 4. Resolve clashes in existing slots
     resolved_slots = []
     for slot in cleaned_slots:
@@ -454,25 +504,76 @@ def repair_division_slots_full(
                         break
                 resolved_slots.append(slot)
 
-    # 5. Fill deficits (missing periods)
-    for subject_code, deficit in deficits.items():
-        for _ in range(deficit):
-            new_pos = find_free_slot(subject_code, resolved_slots)
-            if new_pos:
-                day, period, room_id = new_pos
-                sub = subjects_by_code[subject_code]
-                new_slot = TimetableSlot(
-                    division=division_name,
-                    day=day,
-                    period=period,
-                    subject=subject_code,
-                    lecturer=sub.assigned_lecturer_id,
-                    room=room_id,
-                    type=sub.type
-                )
-                resolved_slots.append(new_slot)
-            else:
-                print(f"Warning: Could not find a free slot to resolve deficit of {subject_code} in Div {division_name}")
+    # 5. Fill deficits (missing periods) - prioritize Lab subjects first to find consecutive slots
+    sorted_subject_codes = sorted(deficits.keys(), key=lambda code: 0 if subjects_by_code[code].type == "Lab" else 1)
+    
+    for subject_code in sorted_subject_codes:
+        deficit = deficits[subject_code]
+        sub = subjects_by_code[subject_code]
+        
+        if sub.type == "Lab":
+            # Schedule in pairs of 2 consecutive periods (2 hours)
+            while deficit >= 2:
+                pair = find_free_consecutive_lab_slots(subject_code, resolved_slots)
+                if pair:
+                    day, p1, p2, room_id = pair
+                    slot1 = TimetableSlot(
+                        division=division_name,
+                        day=day,
+                        period=p1,
+                        subject=subject_code,
+                        lecturer=sub.assigned_lecturer_id,
+                        room=room_id,
+                        type="Lab"
+                    )
+                    slot2 = TimetableSlot(
+                        division=division_name,
+                        day=day,
+                        period=p2,
+                        subject=subject_code,
+                        lecturer=sub.assigned_lecturer_id,
+                        room=room_id,
+                        type="Lab"
+                    )
+                    resolved_slots.extend([slot1, slot2])
+                    deficit -= 2
+                    print(f"Scheduled Lab {subject_code} consecutively on {day} periods {p1}-{p2} in room {room_id}")
+                else:
+                    print(f"Warning: Could not find consecutive slots for Lab {subject_code} in Div {division_name}")
+                    break
+            
+            # Fallback for remaining odd deficit periods
+            for _ in range(deficit):
+                new_pos = find_free_slot(subject_code, resolved_slots)
+                if new_pos:
+                    day, period, room_id = new_pos
+                    new_slot = TimetableSlot(
+                        division=division_name,
+                        day=day,
+                        period=period,
+                        subject=subject_code,
+                        lecturer=sub.assigned_lecturer_id,
+                        room=room_id,
+                        type="Lab"
+                    )
+                    resolved_slots.append(new_slot)
+                    print(f"Scheduled fallback single Lab {subject_code} on {day} period {period}")
+        else:
+            # Theory subjects: schedule singly
+            for _ in range(deficit):
+                new_pos = find_free_slot(subject_code, resolved_slots)
+                if new_pos:
+                    day, period, room_id = new_pos
+                    new_slot = TimetableSlot(
+                        division=division_name,
+                        day=day,
+                        period=period,
+                        subject=subject_code,
+                        lecturer=sub.assigned_lecturer_id,
+                        room=room_id,
+                        type="Theory"
+                    )
+                    resolved_slots.append(new_slot)
 
     # 6. Optimize distribution to balance the slots
     resolved_slots = optimize_distribution(resolved_slots, all_generated_slots, request)

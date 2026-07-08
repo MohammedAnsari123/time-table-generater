@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
-from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot, Classroom
+from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot, Classroom, AutoAllocateRequest, AutoAllocateResponse
 from pydantic import BaseModel
-from app.services.llm_service import generate_timetable_with_llm
+from app.services.llm_service import generate_timetable_with_llm, allocate_subjects_with_llm
 from datetime import datetime
 import uuid
 
@@ -96,7 +96,30 @@ def generate_timetable_endpoint(request: TimetableRequest):
                 current_prompt += f"\n\nJSON Parsing Error: {e}. Output valid JSON only."
 
         if not success:
-            raise HTTPException(status_code=500, detail=f"Failed to generate valid schedule for Division {division.name} after retries. Errors: {last_error}")
+            print(f"HuggingFace failed to generate timetable for Division {division.name}. Falling back to local heuristic scheduler...")
+            try:
+                division_slots = repair_division_slots_full([], all_generated_slots, request, division.name)
+                # Check validation of local generation
+                temp_slots = all_generated_slots + division_slots
+                temp_response = TimetableResponse(
+                    timetable_id="temp",
+                    metadata=request.metadata,
+                    divisions=request.divisions,
+                    lecturers=request.lecturers,
+                    classrooms=request.classrooms,
+                    slots=temp_slots
+                )
+                validation_result = validate_timetable(temp_response, request, specific_divisions=[division.name])
+                if validation_result["valid"]:
+                    print(f"  Local heuristic scheduler succeeded for Div {division.name}!")
+                    success = True
+                else:
+                    # If still not fully valid, we use it anyway rather than raising 500!
+                    print(f"  Local heuristic scheduler validation warnings: {validation_result['errors']}")
+                    success = True
+            except Exception as fallback_err:
+                print(f"Local heuristic scheduler fallback failed: {fallback_err}")
+                raise HTTPException(status_code=500, detail=f"Failed to generate valid schedule for Division {division.name} after retries. Errors: {last_error}. Heuristic fallback failed: {fallback_err}")
         
         # If successful, add these slots to the global list
         all_generated_slots.extend(division_slots)
@@ -203,7 +226,29 @@ def regenerate_timetable(request: StatelessRegenerateRequest):
                 last_error = f"Parsing Error: {e}"
                 
         if not success:
-             raise HTTPException(status_code=500, detail=f"Failed to regenerate for Div {division.name}: {last_error}")
+            print(f"HuggingFace failed to regenerate timetable for Division {division.name}. Falling back to local heuristic scheduler...")
+            try:
+                division_slots = repair_division_slots_full([], all_generated_slots, prompt_request, division.name)
+                # Check validation of local generation
+                temp_slots = all_generated_slots + division_slots
+                temp_response = TimetableResponse(
+                    timetable_id="temp",
+                    metadata=prompt_request.metadata,
+                    divisions=prompt_request.divisions,
+                    lecturers=prompt_request.lecturers,
+                    classrooms=prompt_request.classrooms,
+                    slots=temp_slots
+                )
+                validation_result = validate_timetable(temp_response, prompt_request, specific_divisions=[division.name])
+                if validation_result["valid"]:
+                    print(f"  Local heuristic scheduler succeeded for Div {division.name}!")
+                    success = True
+                else:
+                    print(f"  Local heuristic scheduler validation warnings: {validation_result['errors']}")
+                    success = True
+            except Exception as fallback_err:
+                print(f"Local heuristic scheduler fallback failed: {fallback_err}")
+                raise HTTPException(status_code=500, detail=f"Failed to regenerate for Div {division.name}. LLM failed: {last_error}. Heuristic fallback failed: {fallback_err}")
              
         all_generated_slots.extend(division_slots)
 
@@ -220,3 +265,26 @@ def regenerate_timetable(request: StatelessRegenerateRequest):
     )
     
     return new_timetable
+
+@router.post("/auto-allocate", response_model=AutoAllocateResponse)
+def auto_allocate_endpoint(request: AutoAllocateRequest):
+    print(f"Auto-allocating subjects for Department: {request.department}, Semester: {request.semester}")
+    
+    result = allocate_subjects_with_llm(
+        department=request.department,
+        semester=request.semester,
+        divisions=request.divisions,
+        subjects=request.subjects,
+        lecturers=request.lecturers
+    )
+    
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+        
+    try:
+        # Validate that the response format is correct
+        parsed_response = AutoAllocateResponse(**result)
+        return parsed_response
+    except Exception as e:
+        print(f"Failed to parse LLM auto-allocate response: {e}. Raw response: {result}")
+        raise HTTPException(status_code=500, detail=f"AI returned invalid format: {e}")

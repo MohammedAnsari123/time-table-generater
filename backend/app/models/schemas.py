@@ -107,4 +107,13 @@ class TimetableResponse(BaseModel):
     slots: List[TimetableSlot]
     created_at: Optional[datetime] = None
 
+class AutoAllocateRequest(BaseModel):
+    department: str
+    semester: int
+    divisions: List[Division]
+    subjects: List[Subject]
+    lecturers: List[Lecturer]
+
+class AutoAllocateResponse(BaseModel):
+    divisions: List[Division]
 

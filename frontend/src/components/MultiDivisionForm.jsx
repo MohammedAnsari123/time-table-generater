@@ -1,29 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { TextInput, NumberInput } from './FormInputs';
 import { Plus, Trash, Users, BookOpen, Sparkles, Loader2, Edit2, X } from 'lucide-react';
-import { getSubjects, autoAllocateSubjects } from '../services/api';
+import { getSubjects, autoAllocateSubjects, getStaff } from '../services/api';
 
 const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, department }) => {
     const [activeDivIndex, setActiveDivIndex] = useState(0);
     const [dbSubjects, setDbSubjects] = useState([]);
+    const [dbStaff, setDbStaff] = useState([]);
+    const [dbStaffFull, setDbStaffFull] = useState([]);
     const [editingIndex, setEditingIndex] = useState(null);
     const [allocating, setAllocating] = useState(false);
 
+    const getLecturerName = (lecturerId) => {
+        if (!lecturerId) return '';
+        const found = dbStaffFull.find(l => l.id === lecturerId || l._id === lecturerId || l.name === lecturerId);
+        return found ? found.name : lecturerId;
+    };
+
     useEffect(() => {
-        const fetchDbSubjects = async () => {
+        const fetchResources = async () => {
             try {
-                const data = await getSubjects();
-                const filtered = data.filter(sub => 
+                const [subsData, staffData] = await Promise.all([
+                    getSubjects(),
+                    getStaff()
+                ]);
+
+                // Filter subjects by semester
+                const filteredSubs = subsData.filter(sub => 
                     !sub.semesters || 
                     sub.semesters.length === 0 || 
                     sub.semesters.includes(semester)
                 );
-                setDbSubjects(filtered);
+                setDbSubjects(filteredSubs);
+
+                // Keep full list of staff to resolve names for display
+                setDbStaffFull(staffData);
+
+                // Filter active staff for current semester to display in dropdown options
+                const activeStaff = staffData.filter(s => 
+                    s.status === 'Active' && 
+                    (!s.semesters || s.semesters.length === 0 || s.semesters.includes(semester))
+                );
+                setDbStaff(activeStaff);
+
             } catch (err) {
-                console.error("Failed to load database subjects", err);
+                console.error("Failed to load resources in MultiDivisionForm", err);
             }
         };
-        fetchDbSubjects();
+        fetchResources();
     }, [semester]);
 
     // Ensure at least one division exists
@@ -71,7 +95,9 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, depar
             const res = await autoAllocateSubjects({
                 department,
                 semester,
-                divisions
+                divisions,
+                subjects: dbSubjects,
+                lecturers: dbStaffFull
             });
             if (res && res.divisions) {
                 setDivisions(res.divisions);
@@ -266,9 +292,12 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, depar
                                 onChange={e => setTempSubject({ ...tempSubject, assigned_lecturer_id: e.target.value })}
                             >
                                 <option value="">Auto (AI)</option>
-                                {lecturers.map((l, i) => (
-                                    <option key={`${l.id}-${i}`} value={l.id}>{l.name}</option>
-                                ))}
+                                {dbStaff.map((l, i) => {
+                                    const val = l.id || l._id;
+                                    return (
+                                        <option key={`${val}-${i}`} value={val}>{l.name}</option>
+                                    );
+                                })}
                             </select>
                         </div>
                     </div>
@@ -312,7 +341,7 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, depar
                                             {s.assigned_lecturer_id && (
                                                 <span className="text-green-600 font-medium flex items-center">
                                                     <Users className="h-3 w-3 mr-1" />
-                                                    {lecturers.find(l => l.id === s.assigned_lecturer_id)?.name || s.assigned_lecturer_id}
+                                                    {getLecturerName(s.assigned_lecturer_id)}
                                                 </span>
                                             )}
                                         </div>
