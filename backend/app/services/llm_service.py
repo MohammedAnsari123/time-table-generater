@@ -236,7 +236,7 @@ def local_heuristic_allocation(department: str, semester: int, divisions: list, 
             
             # Fallback: Just assign the default lecturer ID or the first lecturer even if it exceeds max workload
             if not assigned_id:
-                assigned_id = default_id or (lecturers[0].id if lecturers else None)
+                assigned_id = default_id or (lecturers[0].id if lecturers else "TBD")
                 if assigned_id and assigned_id in lec_workload:
                     lec_workload[assigned_id] += sub.periods_per_week
             

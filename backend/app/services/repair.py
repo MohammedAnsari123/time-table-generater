@@ -286,6 +286,17 @@ def repair_division_slots_full(
     if not div:
         return division_slots
 
+    # Pre-sanitize subject lecturers to ensure NO subject has an empty or null assigned_lecturer_id
+    for sub in div.subjects:
+        if not sub.assigned_lecturer_id:
+            eligible = [l for l in request.lecturers if sub.code in l.subjects or sub.name in l.subjects]
+            if eligible:
+                sub.assigned_lecturer_id = eligible[0].id
+            elif request.lecturers:
+                sub.assigned_lecturer_id = request.lecturers[0].id
+            else:
+                sub.assigned_lecturer_id = "TBD"
+
     # Map subjects by code
     subjects_by_code = {s.code: s for s in div.subjects}
     
