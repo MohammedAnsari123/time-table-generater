@@ -182,7 +182,19 @@ const DisplayTimetable = () => {
             const body = [];
             timeSlots.forEach(slot => {
                 if (slot.type === "BREAK") {
-                    body.push({ content: [slot.time, slot.name, ...Array(days.length - 1).fill("")], type: "BREAK" });
+                    body.push([
+                        slot.time,
+                        { 
+                            content: slot.name, 
+                            colSpan: days.length, 
+                            styles: { 
+                                halign: 'center', 
+                                fontStyle: 'bold', 
+                                fillColor: [240, 240, 240],
+                                textColor: [0, 0, 0]
+                            } 
+                        }
+                    ]);
                 } else {
                     const row = [slot.time];
                     days.forEach(day => {
@@ -190,21 +202,18 @@ const DisplayTimetable = () => {
                         const s = divSlots.find(x => x.day === fullDay && x.period === slot.period);
                         row.push(s ? `${subjectMap[s.subject] || s.subject}\n(${lecturerMap[s.lecturer] || s.lecturer}) - ${s.room}` : "-");
                     });
-                    body.push({ content: row, type: "DATA" });
+                    body.push(row);
                 }
             });
 
             autoTable(doc, {
-                startY: y, head, body: body.map(b => b.content), theme: 'grid',
+                startY: y, 
+                head, 
+                body, 
+                theme: 'grid',
                 headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0], halign: 'center' },
                 styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak', lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle', halign: 'center', textColor: [0, 0, 0] },
-                columnStyles: { 0: { cellWidth: 25, fontStyle: 'bold' } },
-                didParseCell: (data) => {
-                    if (body[data.row.index]?.type === "BREAK") {
-                        if (data.column.index === 1) { data.cell.colSpan = days.length; data.cell.styles.halign = 'center'; data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [240, 240, 240]; }
-                        if (data.column.index > 1) data.cell.styles.display = 'none';
-                    }
-                }
+                columnStyles: { 0: { cellWidth: 25, fontStyle: 'bold' } }
             });
 
             y = doc.lastAutoTable.finalY + 10;
