@@ -10,6 +10,7 @@ try:
     HF_MODELS = [
         "google/gemma-3-4b-it",                 # Free Tier (Gemma 3 4B - suggested & verified)
         "google/gemma-3-12b-it",                # Free Tier (Gemma 3 12B - suggested & verified)
+        "google/gemma-3-27b-it",                # Free Tier (Gemma 3 27B - suggested & verified)
         "Qwen/Qwen2.5-Coder-32B-Instruct",      # Free Tier (Coder 32B - verified working)
         "meta-llama/Meta-Llama-3-8B-Instruct",    # Free Tier (Llama 3 8B - verified working)
         "Qwen/Qwen2.5-7B-Instruct",             # Paid Tier (Together/SambaNova)
