@@ -188,6 +188,7 @@ const DisplayTimetable = () => {
                             content: slot.name, 
                             colSpan: days.length, 
                             styles: { 
+                                font: 'helvetica',
                                 halign: 'center', 
                                 fontStyle: 'bold', 
                                 fillColor: [240, 240, 240],
@@ -211,9 +212,9 @@ const DisplayTimetable = () => {
                 head, 
                 body, 
                 theme: 'grid',
-                headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0], halign: 'center' },
-                styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak', lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle', halign: 'center', textColor: [0, 0, 0] },
-                columnStyles: { 0: { cellWidth: 25, fontStyle: 'bold' } }
+                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0], halign: 'center' },
+                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 8, cellPadding: 1, overflow: 'linebreak', lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle', halign: 'center', textColor: [0, 0, 0] },
+                columnStyles: { 0: { cellWidth: 25, font: 'helvetica', fontStyle: 'bold' } }
             });
 
             y = doc.lastAutoTable.finalY + 10;
@@ -226,7 +227,14 @@ const DisplayTimetable = () => {
                 const lecsForSub = [...new Set(divSlots.filter(s => s.subject === subCode).map(s => lecturerMap[s.lecturer] || s.lecturer))].join(", ");
                 footerBody.push([lecsForSub, subName, realCode]);
             });
-            autoTable(doc, { startY: y, head: footerHead, body: footerBody, theme: 'grid', headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0] }, styles: { fontSize: 9, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] } });
+            autoTable(doc, { 
+                startY: y, 
+                head: footerHead, 
+                body: footerBody, 
+                theme: 'grid', 
+                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0] }, 
+                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 9, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] } 
+            });
 
             y = doc.lastAutoTable.finalY + 25;
             doc.setFontSize(10);
