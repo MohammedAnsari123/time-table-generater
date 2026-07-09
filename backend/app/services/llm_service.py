@@ -6,78 +6,127 @@ from app.core.config import settings
 # Initialize HuggingFace client
 try:
     hf_client = InferenceClient(api_key=settings.HF_API_KEY)
-    # List of models ordered by preference (fastest/smartest first)
+    # List of models: free serverless tier models first, then paid models
     HF_MODELS = [
-        "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "Qwen/Qwen2.5-7B-Instruct",
-        "meta-llama/Llama-3.1-8B-Instruct",
-        "Qwen/Qwen2.5-72B-Instruct"
+        "Qwen/Qwen2.5-Coder-32B-Instruct",      # Free Tier (verified working)
+        "meta-llama/Meta-Llama-3-8B-Instruct",    # Free Tier (verified working)
+        "Qwen/Qwen2.5-7B-Instruct",             # Paid Tier (Together/SambaNova)
+        "meta-llama/Llama-3.1-8B-Instruct",     # Paid Tier (Together/SambaNova)
+        "Qwen/Qwen2.5-72B-Instruct"             # Paid Tier (Together/SambaNova)
     ]
 except Exception as e:
     print(f"HF Client Init Failed: {e}")
     hf_client = None
 
 
-def generate_timetable_with_llm(prompt: str) -> dict:
-    if not hf_client:
-        return {"error": "HuggingFace API client is not initialized. Please configure HF_API_KEY."}
+def generate_with_gemini(prompt: str, system_instruction: str = None) -> dict:
+    gemini_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY")
+    if not gemini_key or gemini_key == "YOUR_GEMINI_API_KEY" or gemini_key == "":
+        return {"error": "Gemini API key is not configured."}
+        
+    try:
+        import requests
+        print("Attempting generation with Gemini API (gemini-1.5-flash)...")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+        headers = {"Content-Type": "application/json"}
+        
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.1
+            }
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+            
+        response = requests.post(url, headers=headers, json=payload, timeout=12)
+        response.raise_for_status()
+        resp_data = response.json()
+        
+        text = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+        
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0].strip()
+            
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        if start != -1 and end != -1:
+            text = text[start:end]
+            
+        parsed_json = json.loads(text)
+        return parsed_json
+    except Exception as e:
+        print(f"Gemini Generation Failed: {e}")
+        return {"error": f"Gemini Generation Failed: {e}"}
 
-    # Try models sequentially
-    for model_id in HF_MODELS:
-        try:
-            print(f"Attempting generation with HuggingFace API ({model_id})...")
-            messages = [
-                {
-                    "role": "system", 
-                    "content": "You are a highly intelligent timetable generation engine. Your goal is to create a conflict-free academic timetable based on the provided constraints. output ONLY valid JSON containing a 'slots' array. Do not output conversational text outside JSON block."
-                },
-                {"role": "user", "content": prompt}
-            ]
-            
-            response = hf_client.chat_completion(
-                messages=messages,
-                model=model_id,
-                max_tokens=2500,
-                temperature=0.1,
-                top_p=0.9,
-                timeout=10
-            )
-            
-            response_content = response.choices[0].message.content
-            print("HF Response received. Post-processing content...")
-            
-            # Extract JSON block
-            if "```json" in response_content:
-                response_content = response_content.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_content:
-                response_content = response_content.split("```")[1].split("```")[0].strip()
-            
-            # Strip outer brackets if needed
-            start = response_content.find('{')
-            end = response_content.rfind('}') + 1
-            if start != -1 and end != -1:
-                response_content = response_content[start:end]
-            
-            parsed_json = json.loads(response_content)
-            if "slots" in parsed_json:
-                return parsed_json
-            else:
-                print(f"Parsed JSON does not contain 'slots' key. Retrying with next model...")
+
+def generate_timetable_with_llm(prompt: str) -> dict:
+    # 1. Try Hugging Face first
+    if hf_client:
+        for model_id in HF_MODELS:
+            try:
+                print(f"Attempting generation with HuggingFace API ({model_id})...")
+                messages = [
+                    {
+                        "role": "system", 
+                        "content": "You are a highly intelligent timetable generation engine. Your goal is to create a conflict-free academic timetable based on the provided constraints. output ONLY valid JSON containing a 'slots' array. Do not output conversational text outside JSON block."
+                    },
+                    {"role": "user", "content": prompt}
+                ]
                 
-        except Exception as e:
-            print(f"HF Generation Failed for model {model_id}: {e}")
-            if "timeout" in str(e).lower() or "connection" in str(e).lower() or "connect" in str(e).lower() or "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
-                print("Payment Required, timeout, or connection error on HuggingFace. Stopping further attempts.")
-                break
-            continue # Try fallback model
-            
-    return {"error": "Failed to generate timetable with HuggingFace. All models returned parsing errors or timed out."}
+                response = hf_client.chat_completion(
+                    messages=messages,
+                    model=model_id,
+                    max_tokens=2500,
+                    temperature=0.1,
+                    top_p=0.9,
+                    timeout=10
+                )
+                
+                response_content = response.choices[0].message.content
+                print("HF Response received. Post-processing content...")
+                
+                # Extract JSON block
+                if "```json" in response_content:
+                    response_content = response_content.split("```json")[1].split("```")[0].strip()
+                elif "```" in response_content:
+                    response_content = response_content.split("```")[1].split("```")[0].strip()
+                
+                # Strip outer brackets if needed
+                start = response_content.find('{')
+                end = response_content.rfind('}') + 1
+                if start != -1 and end != -1:
+                    response_content = response_content[start:end]
+                
+                parsed_json = json.loads(response_content)
+                if "slots" in parsed_json:
+                    return parsed_json
+                else:
+                    print(f"Parsed JSON does not contain 'slots' key. Retrying with next model...")
+                    
+            except Exception as e:
+                print(f"HF Generation Failed for model {model_id}: {e}")
+                if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                    print("Payment Required / Credits exhausted on HuggingFace. Skipping paid models.")
+                    break
+                continue # Try fallback model
+
+    # 2. Try Gemini API fallback next
+    gemini_result = generate_with_gemini(
+        prompt=prompt,
+        system_instruction="You are a highly intelligent timetable generation engine. Your goal is to create a conflict-free academic timetable based on the provided constraints. output ONLY valid JSON containing a 'slots' array. Do not output conversational text outside JSON block."
+    )
+    if "error" not in gemini_result:
+        print("Gemini Generation Succeeded!")
+        return gemini_result
+
+    return {"error": "Failed to generate timetable with HuggingFace and Gemini. All models returned parsing errors or timed out."}
 
 
 def allocate_subjects_with_llm(department: str, semester: int, divisions: list, subjects: list, lecturers: list) -> dict:
-    if not hf_client:
-        return {"error": "HuggingFace API client is not initialized. Please configure HF_API_KEY."}
-
     # Build prompt
     prompt = f"Auto-Allocate and Workload-Balance subjects to academic divisions.\n\n"
     prompt += f"Context:\n"
@@ -130,60 +179,70 @@ Rules:
 Ensure all divisions from the input are present. Ensure the output is strictly valid JSON only. Do not write any conversational text.
 """
 
-    # Try models sequentially
-    for model_id in HF_MODELS:
-        try:
-            print(f"Attempting subject allocation with HuggingFace API ({model_id})...")
-            messages = [
-                {
-                    "role": "system", 
-                    "content": "You are a highly intelligent timetable assistant. Your goal is to auto-allocate subjects to divisions and balance workloads equally. output ONLY valid JSON containing a 'divisions' array. Do not output conversational text or explanation."
-                },
-                {"role": "user", "content": prompt}
-            ]
-            
-            response = hf_client.chat_completion(
-                messages=messages,
-                model=model_id,
-                max_tokens=2500,
-                temperature=0.1,
-                top_p=0.9,
-                timeout=10
-            )
-            
-            response_content = response.choices[0].message.content
-            
-            # Extract JSON block
-            if "```json" in response_content:
-                response_content = response_content.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_content:
-                response_content = response_content.split("```")[1].split("```")[0].strip()
-            
-            start = response_content.find('{')
-            end = response_content.rfind('}') + 1
-            if start != -1 and end != -1:
-                response_content = response_content[start:end]
-            
-            parsed_json = json.loads(response_content)
-            if "divisions" in parsed_json:
-                return parsed_json
-            else:
-                print(f"Parsed JSON does not contain 'divisions' key. Retrying with next model...")
+    # 1. Try Hugging Face first
+    if hf_client:
+        for model_id in HF_MODELS:
+            try:
+                print(f"Attempting subject allocation with HuggingFace API ({model_id})...")
+                messages = [
+                    {
+                        "role": "system", 
+                        "content": "You are a highly intelligent timetable assistant. Your goal is to auto-allocate subjects to divisions and balance workloads equally. output ONLY valid JSON containing a 'divisions' array. Do not output conversational text or explanation."
+                    },
+                    {"role": "user", "content": prompt}
+                ]
                 
-        except Exception as e:
-            print(f"HF Subject Allocation Failed for model {model_id}: {e}")
-            if "timeout" in str(e).lower() or "connection" in str(e).lower() or "connect" in str(e).lower() or "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
-                print("Payment Required, timeout, or connection error on HuggingFace. Stopping further attempts.")
-                break
-            continue # Try fallback model
-            
-    # Fallback to local heuristic allocator when HuggingFace fails (e.g. credits exhausted / 402 error)
-    print("Hugging Face API failed or credits exhausted. Running local heuristic subject allocation fallback...")
+                response = hf_client.chat_completion(
+                    messages=messages,
+                    model=model_id,
+                    max_tokens=2500,
+                    temperature=0.1,
+                    top_p=0.9,
+                    timeout=10
+                )
+                
+                response_content = response.choices[0].message.content
+                
+                # Extract JSON block
+                if "```json" in response_content:
+                    response_content = response_content.split("```json")[1].split("```")[0].strip()
+                elif "```" in response_content:
+                    response_content = response_content.split("```")[1].split("```")[0].strip()
+                
+                start = response_content.find('{')
+                end = response_content.rfind('}') + 1
+                if start != -1 and end != -1:
+                    response_content = response_content[start:end]
+                
+                parsed_json = json.loads(response_content)
+                if "divisions" in parsed_json:
+                    return parsed_json
+                else:
+                    print(f"Parsed JSON does not contain 'divisions' key. Retrying with next model...")
+                    
+            except Exception as e:
+                print(f"HF Subject Allocation Failed for model {model_id}: {e}")
+                if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                    print("Payment Required / Credits exhausted on HuggingFace. Skipping paid models.")
+                    break
+                continue # Try fallback model
+
+    # 2. Try Gemini API fallback next
+    gemini_result = generate_with_gemini(
+        prompt=prompt,
+        system_instruction="You are a highly intelligent timetable assistant. Your goal is to auto-allocate subjects to divisions and balance workloads equally. output ONLY valid JSON containing a 'divisions' array. Do not output conversational text or explanation."
+    )
+    if "error" not in gemini_result:
+        print("Gemini Subject Allocation Succeeded!")
+        return gemini_result
+
+    # 3. Fallback to local heuristic allocator when HuggingFace and Gemini fail
+    print("Hugging Face API and Gemini failed or credits exhausted. Running local heuristic subject allocation fallback...")
     try:
         return local_heuristic_allocation(department, semester, divisions, subjects, lecturers)
     except Exception as fallback_err:
         print(f"Local heuristic fallback failed: {fallback_err}")
-        return {"error": f"Failed to auto-allocate subjects. HuggingFace failed and local fallback crashed: {fallback_err}"}
+        return {"error": f"Failed to auto-allocate subjects. All AI models failed, and local fallback crashed: {fallback_err}"}
 
 
 def local_heuristic_allocation(department: str, semester: int, divisions: list, subjects: list, lecturers: list) -> dict:
