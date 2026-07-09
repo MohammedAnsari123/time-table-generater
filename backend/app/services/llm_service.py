@@ -65,6 +65,9 @@ def generate_timetable_with_llm(prompt: str) -> dict:
                 
         except Exception as e:
             print(f"HF Generation Failed for model {model_id}: {e}")
+            if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                print("Payment Required / Credits exhausted on HuggingFace. Stopping further attempts.")
+                break
             continue # Try fallback model
             
     return {"error": "Failed to generate timetable with HuggingFace. All models returned parsing errors or timed out."}
@@ -167,6 +170,9 @@ Ensure all divisions from the input are present. Ensure the output is strictly v
                 
         except Exception as e:
             print(f"HF Subject Allocation Failed for model {model_id}: {e}")
+            if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                print("Payment Required / Credits exhausted on HuggingFace. Stopping further attempts.")
+                break
             continue # Try fallback model
             
     # Fallback to local heuristic allocator when HuggingFace fails (e.g. credits exhausted / 402 error)

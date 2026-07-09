@@ -32,7 +32,21 @@ const SubjectsList = () => {
     const [error, setError] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
 
-    const departments = ["Computer Science", "Information Technology", "Electrical", "Electronics", "Mechanical", "Civil", "Basic Sciences"];
+    const departments = [
+        "Computer Science", 
+        "Computer Engineering", 
+        "Computer Science Engineering", 
+        "AI/ML", 
+        "Data Science", 
+        "Cyber Security", 
+        "Information Technology", 
+        "Electrical", 
+        "Electronics", 
+        "Mechanical", 
+        "Civil", 
+        "Chemical", 
+        "Basic Sciences"
+    ];
 
     useEffect(() => {
         fetchData();

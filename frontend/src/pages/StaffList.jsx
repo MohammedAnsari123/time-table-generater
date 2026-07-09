@@ -34,7 +34,21 @@ const StaffList = () => {
     const [actionLoading, setActionLoading] = useState(false);
 
     const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-    const departments = ["Computer Science", "Information Technology", "Electrical", "Electronics", "Mechanical", "Civil", "Basic Sciences"];
+    const departments = [
+        "Computer Science", 
+        "Computer Engineering", 
+        "Computer Science Engineering", 
+        "AI/ML", 
+        "Data Science", 
+        "Cyber Security", 
+        "Information Technology", 
+        "Electrical", 
+        "Electronics", 
+        "Mechanical", 
+        "Civil", 
+        "Chemical", 
+        "Basic Sciences"
+    ];
     const designations = ["Professor", "Associate Professor", "Assistant Professor", "Lecturer", "Lab Assistant"];
 
     useEffect(() => {

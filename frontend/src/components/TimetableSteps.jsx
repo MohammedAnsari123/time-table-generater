@@ -7,10 +7,17 @@ import { getStaff, getClassrooms, getLabs } from '../services/api';
 export const Step1Metadata = ({ metadata, handleMetadataChange }) => {
     const deptOptions = [
         { value: 'Computer Science', label: 'Computer Science' },
+        { value: 'Computer Engineering', label: 'Computer Engineering' },
+        { value: 'Computer Science Engineering', label: 'Computer Science Engineering' },
+        { value: 'AI/ML', label: 'Artificial Intelligence & Machine Learning (AI/ML)' },
+        { value: 'Data Science', label: 'Data Science' },
+        { value: 'Cyber Security', label: 'Cyber Security' },
         { value: 'Information Technology', label: 'Information Technology' },
+        { value: 'Electronics & Telecommunication', label: 'Electronics & Telecommunication' },
         { value: 'Electrical Engineering', label: 'Electrical Engineering' },
         { value: 'Mechanical Engineering', label: 'Mechanical Engineering' },
         { value: 'Civil Engineering', label: 'Civil Engineering' },
+        { value: 'Chemical Engineering', label: 'Chemical Engineering' },
         { value: 'Other', label: 'Other (Custom)' }
     ];
 
