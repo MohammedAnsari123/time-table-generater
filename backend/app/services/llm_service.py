@@ -39,7 +39,8 @@ def generate_timetable_with_llm(prompt: str) -> dict:
                 model=model_id,
                 max_tokens=2500,
                 temperature=0.1,
-                top_p=0.9
+                top_p=0.9,
+                timeout=10
             )
             
             response_content = response.choices[0].message.content
@@ -65,8 +66,8 @@ def generate_timetable_with_llm(prompt: str) -> dict:
                 
         except Exception as e:
             print(f"HF Generation Failed for model {model_id}: {e}")
-            if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
-                print("Payment Required / Credits exhausted on HuggingFace. Stopping further attempts.")
+            if "timeout" in str(e).lower() or "connection" in str(e).lower() or "connect" in str(e).lower() or "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                print("Payment Required, timeout, or connection error on HuggingFace. Stopping further attempts.")
                 break
             continue # Try fallback model
             
@@ -146,7 +147,8 @@ Ensure all divisions from the input are present. Ensure the output is strictly v
                 model=model_id,
                 max_tokens=2500,
                 temperature=0.1,
-                top_p=0.9
+                top_p=0.9,
+                timeout=10
             )
             
             response_content = response.choices[0].message.content
@@ -170,8 +172,8 @@ Ensure all divisions from the input are present. Ensure the output is strictly v
                 
         except Exception as e:
             print(f"HF Subject Allocation Failed for model {model_id}: {e}")
-            if "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
-                print("Payment Required / Credits exhausted on HuggingFace. Stopping further attempts.")
+            if "timeout" in str(e).lower() or "connection" in str(e).lower() or "connect" in str(e).lower() or "402" in str(e) or "Payment Required" in str(e) or "credits" in str(e).lower():
+                print("Payment Required, timeout, or connection error on HuggingFace. Stopping further attempts.")
                 break
             continue # Try fallback model
             
