@@ -8,8 +8,10 @@ try:
     hf_client = InferenceClient(api_key=settings.HF_API_KEY)
     # List of models: free serverless tier models first, then paid models
     HF_MODELS = [
-        "Qwen/Qwen2.5-Coder-32B-Instruct",      # Free Tier (verified working)
-        "meta-llama/Meta-Llama-3-8B-Instruct",    # Free Tier (verified working)
+        "google/gemma-3-4b-it",                 # Free Tier (Gemma 3 4B - suggested & verified)
+        "google/gemma-3-12b-it",                # Free Tier (Gemma 3 12B - suggested & verified)
+        "Qwen/Qwen2.5-Coder-32B-Instruct",      # Free Tier (Coder 32B - verified working)
+        "meta-llama/Meta-Llama-3-8B-Instruct",    # Free Tier (Llama 3 8B - verified working)
         "Qwen/Qwen2.5-7B-Instruct",             # Paid Tier (Together/SambaNova)
         "meta-llama/Llama-3.1-8B-Instruct",     # Paid Tier (Together/SambaNova)
         "Qwen/Qwen2.5-72B-Instruct"             # Paid Tier (Together/SambaNova)
@@ -259,5 +261,3 @@ def local_heuristic_allocation(department: str, semester: int, divisions: list, 
         })
         
     return {"divisions": allocated_divisions}
-
-
