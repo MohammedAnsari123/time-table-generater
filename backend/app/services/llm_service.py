@@ -19,52 +19,8 @@ except Exception as e:
     hf_client = None
 
 
-def generate_with_gemini(prompt: str, system_instruction: str = None) -> dict:
-    gemini_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY")
-    if not gemini_key or gemini_key == "YOUR_GEMINI_API_KEY" or gemini_key == "":
-        return {"error": "Gemini API key is not configured."}
-        
-    try:
-        import requests
-        print("Attempting generation with Gemini API (gemini-1.5-flash)...")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
-        headers = {"Content-Type": "application/json"}
-        
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.1
-            }
-        }
-        if system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-            
-        response = requests.post(url, headers=headers, json=payload, timeout=12)
-        response.raise_for_status()
-        resp_data = response.json()
-        
-        text = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-        
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0].strip()
-        elif "```" in text:
-            text = text.split("```")[1].split("```")[0].strip()
-            
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        if start != -1 and end != -1:
-            text = text[start:end]
-            
-        parsed_json = json.loads(text)
-        return parsed_json
-    except Exception as e:
-        print(f"Gemini Generation Failed: {e}")
-        return {"error": f"Gemini Generation Failed: {e}"}
-
-
 def generate_timetable_with_llm(prompt: str) -> dict:
-    # 1. Try Hugging Face first
+    # Try Hugging Face first
     if hf_client:
         for model_id in HF_MODELS:
             try:
@@ -114,16 +70,7 @@ def generate_timetable_with_llm(prompt: str) -> dict:
                     break
                 continue # Try fallback model
 
-    # 2. Try Gemini API fallback next
-    gemini_result = generate_with_gemini(
-        prompt=prompt,
-        system_instruction="You are a highly intelligent timetable generation engine. Your goal is to create a conflict-free academic timetable based on the provided constraints. output ONLY valid JSON containing a 'slots' array. Do not output conversational text outside JSON block."
-    )
-    if "error" not in gemini_result:
-        print("Gemini Generation Succeeded!")
-        return gemini_result
-
-    return {"error": "Failed to generate timetable with HuggingFace and Gemini. All models returned parsing errors or timed out."}
+    return {"error": "Failed to generate timetable with HuggingFace. All models returned parsing errors or timed out."}
 
 
 def allocate_subjects_with_llm(department: str, semester: int, divisions: list, subjects: list, lecturers: list) -> dict:
@@ -179,7 +126,7 @@ Rules:
 Ensure all divisions from the input are present. Ensure the output is strictly valid JSON only. Do not write any conversational text.
 """
 
-    # 1. Try Hugging Face first
+    # Try Hugging Face first
     if hf_client:
         for model_id in HF_MODELS:
             try:
@@ -227,22 +174,13 @@ Ensure all divisions from the input are present. Ensure the output is strictly v
                     break
                 continue # Try fallback model
 
-    # 2. Try Gemini API fallback next
-    gemini_result = generate_with_gemini(
-        prompt=prompt,
-        system_instruction="You are a highly intelligent timetable assistant. Your goal is to auto-allocate subjects to divisions and balance workloads equally. output ONLY valid JSON containing a 'divisions' array. Do not output conversational text or explanation."
-    )
-    if "error" not in gemini_result:
-        print("Gemini Subject Allocation Succeeded!")
-        return gemini_result
-
-    # 3. Fallback to local heuristic allocator when HuggingFace and Gemini fail
-    print("Hugging Face API and Gemini failed or credits exhausted. Running local heuristic subject allocation fallback...")
+    # Fallback to local heuristic allocator when HuggingFace fails
+    print("Hugging Face API failed or credits exhausted. Running local heuristic subject allocation fallback...")
     try:
         return local_heuristic_allocation(department, semester, divisions, subjects, lecturers)
     except Exception as fallback_err:
         print(f"Local heuristic fallback failed: {fallback_err}")
-        return {"error": f"Failed to auto-allocate subjects. All AI models failed, and local fallback crashed: {fallback_err}"}
+        return {"error": f"Failed to auto-allocate subjects. HuggingFace failed and local fallback crashed: {fallback_err}"}
 
 
 def local_heuristic_allocation(department: str, semester: int, divisions: list, subjects: list, lecturers: list) -> dict:
