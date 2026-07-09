@@ -100,26 +100,29 @@ const DisplayTimetable = () => {
 
             const tableRows = [];
             const headerCells = [
-                new TableCell({ children: [new Paragraph({ text: "Time \\ Day", bold: true, size: 20 })], width: { size: 15, type: WidthType.PERCENTAGE }, shading: { fill: "E0E0E0" } }),
-                ...days.map(day => new TableCell({ children: [new Paragraph({ text: day, bold: true, alignment: "center" })], width: { size: 85 / days.length, type: WidthType.PERCENTAGE }, shading: { fill: "E0E0E0" } }))
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Time \\ Day", bold: true, size: 20, color: "000000" })] })], width: { size: 15, type: WidthType.PERCENTAGE }, shading: { fill: "E0E0E0" } }),
+                ...days.map(day => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: day, bold: true, color: "000000" })], alignment: "center" })], width: { size: 85 / days.length, type: WidthType.PERCENTAGE }, shading: { fill: "E0E0E0" } }))
             ];
             tableRows.push(new TableRow({ children: headerCells }));
 
             timeSlots.forEach(slot => {
                 const rowCells = [];
                 if (slot.type === "BREAK") {
-                    rowCells.push(new TableCell({ children: [new Paragraph({ text: slot.time, bold: true, size: 18 })], width: { size: 15, type: WidthType.PERCENTAGE }, shading: { fill: "F3F4F6" } }));
-                    rowCells.push(new TableCell({ children: [new Paragraph({ text: slot.name, bold: true, alignment: "center", size: 24 })], columnSpan: days.length, width: { size: 85, type: WidthType.PERCENTAGE }, shading: { fill: "F3F4F6" } }));
+                    rowCells.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: slot.time, bold: true, size: 18, color: "000000" })] })], width: { size: 15, type: WidthType.PERCENTAGE }, shading: { fill: "F3F4F6" } }));
+                    rowCells.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: slot.name, bold: true, size: 24, color: "000000" })], alignment: "center" })], columnSpan: days.length, width: { size: 85, type: WidthType.PERCENTAGE }, shading: { fill: "F3F4F6" } }));
                 } else {
-                    rowCells.push(new TableCell({ children: [new Paragraph({ text: slot.time, bold: true, size: 18 })], width: { size: 15, type: WidthType.PERCENTAGE } }));
+                    rowCells.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: slot.time, bold: true, size: 18, color: "000000" })] })], width: { size: 15, type: WidthType.PERCENTAGE } }));
                     days.forEach(day => {
                         const fullDay = metadata.working_days.find(d => d.toUpperCase().startsWith(day.charAt(0)) && d.toUpperCase().includes(day.substring(1, 2))) || day;
                         const actualSlot = divSlots.find(x => x.day === fullDay && x.period === slot.period);
-                        let content = [new Paragraph({ text: "-", alignment: "center" })];
+                        let content = [new Paragraph({ children: [new TextRun({ text: "-", color: "000000" })], alignment: "center" })];
                         if (actualSlot) {
                             const subName = subjectMap[actualSlot.subject] || actualSlot.subject;
                             const lecName = lecturerMap[actualSlot.lecturer] || actualSlot.lecturer;
-                            content = [new Paragraph({ text: subName, bold: true, alignment: "center", size: 20 }), new Paragraph({ text: `(${lecName}) - ${actualSlot.room}`, alignment: "center", size: 18 })];
+                            content = [
+                                new Paragraph({ children: [new TextRun({ text: subName, bold: true, size: 20, color: "000000" })], alignment: "center" }),
+                                new Paragraph({ children: [new TextRun({ text: `(${lecName}) - ${actualSlot.room}`, size: 18, color: "000000" })], alignment: "center" })
+                            ];
                         }
                         rowCells.push(new TableCell({ children: content }));
                     });
@@ -127,13 +130,27 @@ const DisplayTimetable = () => {
                 tableRows.push(new TableRow({ children: rowCells }));
             });
 
-            const footerRows = [new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "Staff Name", bold: true })], shading: { fill: "E0E0E0" } }), new TableCell({ children: [new Paragraph({ text: "Subject Name", bold: true })], shading: { fill: "E0E0E0" } }), new TableCell({ children: [new Paragraph({ text: "Subject Code", bold: true })], shading: { fill: "E0E0E0" } })] })];
+            const footerRows = [
+                new TableRow({ 
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Staff Name", bold: true, color: "000000" })] })], shading: { fill: "E0E0E0" } }), 
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject Name", bold: true, color: "000000" })] })], shading: { fill: "E0E0E0" } }), 
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject Code", bold: true, color: "000000" })] })], shading: { fill: "E0E0E0" } })
+                    ] 
+                })
+            ];
             const uniqueSubjects = [...new Set(divSlots.map(s => s.subject))];
             uniqueSubjects.forEach(subCode => {
                 const subName = subjectMap[subCode] || subCode;
                 const realCode = subjectCodeMap[subCode] || "";
                 const lecsForSub = [...new Set(divSlots.filter(s => s.subject === subCode).map(s => lecturerMap[s.lecturer] || s.lecturer))].join(", ");
-                footerRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph(lecsForSub)] }), new TableCell({ children: [new Paragraph(subName)] }), new TableCell({ children: [new Paragraph(realCode)] })] }));
+                footerRows.push(new TableRow({ 
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: lecsForSub, color: "000000" })] })] }), 
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: subName, color: "000000" })] })] }), 
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: realCode, color: "000000" })] })] })
+                    ] 
+                }));
             });
 
             const doc = new Document({
@@ -141,14 +158,14 @@ const DisplayTimetable = () => {
                     properties: { page: { margin: { top: 500, right: 500, bottom: 500, left: 500 } } },
                     children: [
                         new Paragraph({ children: [new ImageRun({ data: imageBuffer, transformation: { width: 700, height: 120 } })], alignment: "center", spacing: { after: 100 } }),
-                        new Paragraph({ children: [new TextRun({ text: "CLASS TIME TABLE", bold: true, size: 32, underline: {} })], alignment: "center", spacing: { after: 100 } }),
-                        new Paragraph({ children: [new TextRun({ text: `Academic Year: ${metadata.academic_year} (EVEN Semester)`, bold: true, size: 24 })], alignment: "center", spacing: { after: 50 } }),
-                        new Paragraph({ children: [new TextRun({ text: `Year / Branch: ${metadata.department} (Div ${div.name})`, bold: true, size: 24 }), new TextRun({ text: `    W.E.F: 15th Dec 2025`, bold: true, size: 24 })], spacing: { after: 200, before: 200 }, border: { bottom: { style: "single", size: 6, color: "000000" } } }),
+                        new Paragraph({ children: [new TextRun({ text: "CLASS TIME TABLE", bold: true, size: 32, color: "000000", underline: {} })], alignment: "center", spacing: { after: 100 } }),
+                        new Paragraph({ children: [new TextRun({ text: `Academic Year: ${metadata.academic_year} (EVEN Semester)`, bold: true, size: 24, color: "000000" })], alignment: "center", spacing: { after: 50 } }),
+                        new Paragraph({ children: [new TextRun({ text: `Year / Branch: ${metadata.department} (Div ${div.name})`, bold: true, size: 24, color: "000000" }), new TextRun({ text: `    W.E.F: 15th Dec 2025`, bold: true, size: 24, color: "000000" })], spacing: { after: 200, before: 200 }, border: { bottom: { style: "single", size: 6, color: "000000" } } }),
                         new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
                         new Paragraph({ text: "", spacing: { after: 300 } }),
                         new Table({ rows: footerRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
-                        new Paragraph({ children: [new TextRun({ text: "____________________            ____________________            ____________________" })], alignment: "center" }),
-                        new Paragraph({ children: [new TextRun({ text: "   Prepared By                  I/C HOD                      Principal    " })], alignment: "center", spacing: { after: 200 } })
+                        new Paragraph({ children: [new TextRun({ text: "____________________            ____________________            ____________________", color: "000000" })], alignment: "center" }),
+                        new Paragraph({ children: [new TextRun({ text: "   Prepared By                  I/C HOD                      Principal    ", color: "000000" })], alignment: "center", spacing: { after: 200 } })
                     ],
                 }],
             });
@@ -169,6 +186,7 @@ const DisplayTimetable = () => {
             const subjectCodeMap = (div.subjects || []).reduce((acc, s) => ({ ...acc, [s.code]: s.code }), {});
 
             const doc = new jsPDF('p', 'mm', 'a4');
+            doc.setTextColor(0, 0, 0);
             const pageWidth = doc.internal.pageSize.getWidth();
             const imgWidth = 190; const imgHeight = 35;
             doc.addImage(headerImageBase64, 'JPEG', 10, 5, imgWidth, imgHeight);
