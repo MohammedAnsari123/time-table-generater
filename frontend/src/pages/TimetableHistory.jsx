@@ -50,9 +50,8 @@ const TimetableHistory = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6 md:p-12">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
+        <div className="space-y-6 max-w-7xl mx-auto w-full pb-12">
+            <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Your Timetables</h1>
                         <p className="text-gray-500 mt-1">Manage and view your generated schedules ({timetables.length})</p>
@@ -127,7 +126,6 @@ const TimetableHistory = () => {
                         ))}
                     </div>
                 )}
-            </div>
         </div>
     );
 };

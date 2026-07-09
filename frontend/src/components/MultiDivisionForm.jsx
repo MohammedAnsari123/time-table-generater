@@ -327,19 +327,19 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, depar
                 <div className="space-y-2">
                     {activeDiv.subjects && activeDiv.subjects.length > 0 ? (
                         activeDiv.subjects.map((s, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border hover:border-indigo-300 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-2 h-10 rounded-l ${s.type === 'Lab' ? 'bg-blue-800' : 'bg-blue-500'}`}></div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-gray-800">{s.name}</span>
-                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{s.code}</span>
+                            <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 rounded border hover:border-indigo-300 transition-colors gap-3">
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <div className={`w-2 h-10 rounded-l shrink-0 ${s.type === 'Lab' ? 'bg-blue-800' : 'bg-blue-500'}`}></div>
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-bold text-gray-800 truncate max-w-[200px] sm:max-w-xs" title={s.name}>{s.name}</span>
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-mono shrink-0">{s.code}</span>
                                         </div>
-                                        <div className="text-sm text-gray-500 flex gap-4">
+                                        <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 mt-0.5">
                                             <span>{s.type}</span>
                                             <span>{s.periods_per_week} periods/wk</span>
                                             {s.assigned_lecturer_id && (
-                                                <span className="text-green-600 font-medium flex items-center">
+                                                <span className="text-green-600 font-medium flex items-center shrink-0">
                                                     <Users className="h-3 w-3 mr-1" />
                                                     {getLecturerName(s.assigned_lecturer_id)}
                                                 </span>
@@ -347,7 +347,7 @@ const MultiDivisionForm = ({ divisions, setDivisions, lecturers, semester, depar
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
                                     <button onClick={() => startEditingSubject(s, idx)} className="text-gray-400 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors" title="Edit subject">
                                         <Edit2 className="h-4 w-4" />
                                     </button>

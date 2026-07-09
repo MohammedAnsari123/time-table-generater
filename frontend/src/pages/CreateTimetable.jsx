@@ -48,22 +48,19 @@ const CreateTimetable = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <div className="bg-white shadow-sm p-4 mb-6 border-b">
-                <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <h1 className="text-xl font-bold text-gray-800 flex items-center">
-                        <Users className="h-6 w-6 mr-2 text-indigo-600" /> Multi-Division Generator
-                    </h1>
-                    <div className="flex gap-2">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className={`h-2 w-8 rounded-full ${step >= i ? 'bg-indigo-600' : 'bg-gray-200'}`} />
-                        ))}
-                    </div>
+        <div className="space-y-6 max-w-5xl mx-auto w-full pb-12">
+            <div className="bg-white/80 backdrop-blur-xl border border-slate-100 shadow-md p-5 rounded-2xl flex justify-between items-center">
+                <h1 className="text-xl font-bold text-gray-800 flex items-center">
+                    <Users className="h-6 w-6 mr-2 text-indigo-600" /> Multi-Division Generator
+                </h1>
+                <div className="flex gap-2">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className={`h-2 w-8 rounded-full ${step >= i ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+                    ))}
                 </div>
             </div>
 
-            <div className="flex-1 max-w-5xl mx-auto w-full px-4 pb-12">
-                <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-100">
                     {step === 1 && <Step1Metadata metadata={metadata} handleMetadataChange={handleMetadataChange} />}
                     {step === 2 && <Step2GlobalResources lecturers={lecturers} setLecturers={setLecturers} classrooms={classrooms} setClassrooms={setClassrooms} labs={labs} setLabs={setLabs} selectedSemester={metadata.semester} />}
                     {step === 3 && <MultiDivisionForm divisions={divisions} setDivisions={setDivisions} lecturers={lecturers} semester={metadata.semester} department={metadata.department} />}
@@ -86,7 +83,6 @@ const CreateTimetable = () => {
                     </div>
                 </div>
             </div>
-        </div>
     );
 };
 

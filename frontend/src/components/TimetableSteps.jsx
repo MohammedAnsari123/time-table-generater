@@ -201,7 +201,7 @@ export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setC
                 </h2>
                 <p className="text-xs text-slate-500 mb-4">Choose which teaching staff members from the Master Database should be scheduled in this timetable.</p>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-8 gap-4">
                     {dbStaff.map(member => {
                         const selected = lecturers.some(l => l.id === member.id);
                         return (
@@ -250,7 +250,7 @@ export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setC
                 </h2>
                 <p className="text-xs text-slate-500 mb-4">Choose which lecture classrooms from the database pool should be utilized.</p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 gap-4">
                     {dbRooms.map(room => {
                         const selected = classrooms.some(r => r.id === room.id);
                         return (
@@ -297,7 +297,7 @@ export const Step2GlobalResources = ({ lecturers, setLecturers, classrooms, setC
                 </h2>
                 <p className="text-xs text-slate-500 mb-4">Choose which specialized lab rooms should be utilized for practical lab periods.</p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 3xl:grid-cols-8 4xl:grid-cols-10 gap-4">
                     {dbLabs.map(lab => {
                         const selected = labs.some(l => l.id === lab.id);
                         return (

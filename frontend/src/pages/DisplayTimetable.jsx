@@ -332,9 +332,8 @@ const DisplayTimetable = () => {
     const viewTimetable = activeData ? { ...timetable, metadata: { ...timetable.metadata, section: activeData.div.name }, slots: activeData.divSlots, subjects: activeData.div.subjects } : null;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="space-y-6 max-w-7xl mx-auto w-full pb-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
                         <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-gray-700 flex items-center mb-2"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard</button>
                         <h1 className="text-2xl font-bold text-gray-800">
@@ -391,7 +390,6 @@ const DisplayTimetable = () => {
                 ) : (
                     <div className="text-center py-10 text-gray-400">Select a division.</div>
                 )}
-            </div>
 
             {/* Premium Glassmorphic Modal Dialog for Editing Slot */}
             {showModal && (
