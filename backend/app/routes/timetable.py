@@ -2,18 +2,53 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 from app.models.schemas import TimetableRequest, TimetableResponse, TimetableSlot, Classroom, AutoAllocateRequest, AutoAllocateResponse
 from pydantic import BaseModel
-from app.services.llm_service import generate_timetable_with_llm, allocate_subjects_with_llm
+from app.services.llm_service import generate_timetable_with_llm, allocate_subjects_with_llm, explain_conflicts_with_llm
 from datetime import datetime
 import uuid
 
 from app.services.validator import validate_timetable
 from app.services.repair import repair_division_slots_full
 from app.services.prompt_builder import build_single_division_prompt
+from app.services.solver import schedule_with_ortools
 
 router = APIRouter()
 
 @router.post("/generate", response_model=TimetableResponse)
 def generate_timetable_endpoint(request: TimetableRequest):
+    # Try Google OR-Tools CP-SAT Solver first
+    try:
+        print("Running Google OR-Tools CP-SAT constraint scheduler...")
+        solver_result = schedule_with_ortools(request)
+        
+        if solver_result["status"] == "SUCCESS":
+            print("CP-SAT Solver successfully generated optimal timetable.")
+            slots_data = solver_result["slots"]
+            all_generated_slots = [TimetableSlot(**slot) for slot in slots_data]
+            
+            final_response = TimetableResponse(
+                timetable_id=str(uuid.uuid4()),
+                metadata=request.metadata,
+                divisions=request.divisions,
+                lecturers=request.lecturers,
+                classrooms=request.classrooms,
+                labs=request.labs or [],
+                slots=all_generated_slots,
+                created_at=datetime.utcnow()
+            )
+            return final_response
+            
+        elif solver_result["status"] == "INFEASIBLE":
+            conflicts = solver_result.get("conflicts", [])
+            print(f"CP-SAT Solver reported INFEASIBLE. Conflicts: {conflicts}")
+            ai_explanation = explain_conflicts_with_llm(conflicts)
+            raise HTTPException(status_code=400, detail=ai_explanation)
+            
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e:
+        print(f"CP-SAT Solver failed or crashed: {e}. Falling back to sequential LLM/Heuristic pipeline...")
+
+    # Fallback to sequential LLM/Heuristic generation
     # Merge labs into classrooms pool if provided
     if request.labs:
         for lab in request.labs:
@@ -163,7 +198,7 @@ def regenerate_timetable(request: StatelessRegenerateRequest):
                     )
                 )
 
-    # TimetableRequest for reference (used in prompt building)
+    # TimetableRequest for reference (used in prompt building / solving)
     prompt_request = TimetableRequest(
         metadata=original_timetable.metadata,
         divisions=original_timetable.divisions, 
@@ -172,6 +207,34 @@ def regenerate_timetable(request: StatelessRegenerateRequest):
         labs=original_timetable.labs,
         constraints=new_constraints 
     )
+
+    # If there are NO new natural language constraints, use the fast mathematical OR-Tools solver
+    if not new_constraints:
+        try:
+            print("Regenerating with Google OR-Tools CP-SAT scheduler...")
+            solver_result = schedule_with_ortools(prompt_request)
+            if solver_result["status"] == "SUCCESS":
+                slots_data = solver_result["slots"]
+                all_generated_slots = [TimetableSlot(**slot) for slot in slots_data]
+                return TimetableResponse(
+                    timetable_id=str(uuid.uuid4()),
+                    metadata=original_timetable.metadata,
+                    divisions=original_timetable.divisions,
+                    lecturers=original_timetable.lecturers,
+                    classrooms=original_timetable.classrooms,
+                    labs=original_timetable.labs or [],
+                    slots=all_generated_slots,
+                    created_at=datetime.utcnow()
+                )
+            elif solver_result["status"] == "INFEASIBLE":
+                conflicts = solver_result.get("conflicts", [])
+                print(f"CP-SAT Regene Solver reported INFEASIBLE. Conflicts: {conflicts}")
+                ai_explanation = explain_conflicts_with_llm(conflicts)
+                raise HTTPException(status_code=400, detail=ai_explanation)
+        except HTTPException as http_ex:
+            raise http_ex
+        except Exception as e:
+            print(f"OR-Tools solver failed on regeneration: {e}. Falling back to LLM...")
 
     all_generated_slots: List[TimetableSlot] = []
     

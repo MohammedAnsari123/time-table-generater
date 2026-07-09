@@ -262,3 +262,41 @@ def local_heuristic_allocation(department: str, semester: int, divisions: list, 
         })
         
     return {"divisions": allocated_divisions}
+
+
+def explain_conflicts_with_llm(conflicts: list) -> str:
+    """
+    Asks the LLM to explain scheduling resource conflicts politely and suggest solutions.
+    """
+    prompt = f"The college scheduling engine failed to generate a timetable due to the following resource clashes:\n"
+    for clash in conflicts:
+        prompt += f"- {clash}\n"
+    prompt += "\nExplain in a very polite, helpful, and clear manner to the administrator which constraints are clashing, why this makes scheduling mathematically impossible, and suggest specific actions to resolve it (e.g. adding more rooms, reducing subject hours, or updating teacher workloads). Keep the response concise (max 3 short paragraphs). Do not output JSON, write plain text only."
+    
+    if hf_client:
+        for model_id in HF_MODELS:
+            try:
+                print(f"Attempting conflict explanation with HuggingFace ({model_id})...")
+                messages = [
+                    {"role": "system", "content": "You are a helpful college administrator assistant. Your job is to explain scheduling conflicts clearly and politely in plain text."},
+                    {"role": "user", "content": prompt}
+                ]
+                response = hf_client.chat_completion(
+                    messages=messages,
+                    model=model_id,
+                    max_tokens=800,
+                    temperature=0.7,
+                    timeout=10
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"Explanation model {model_id} failed: {e}")
+                continue
+                
+    # Fallback if AI fails to respond
+    fallback_msg = "Timetable generation is mathematically impossible due to the following clashes:\n"
+    for clash in conflicts:
+        fallback_msg += f"- {clash}\n"
+    fallback_msg += "\nPlease adjust your staff workloads or classroom resources to resolve these clashes."
+    return fallback_msg
+
