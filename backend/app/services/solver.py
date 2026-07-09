@@ -236,46 +236,30 @@ def schedule_with_ortools(request: TimetableRequest) -> dict:
     
     for lec in request.lecturers:
         for d_idx in range(num_days):
-            # Find if lecturer teaches on this day
-            lec_day_vars = {}
+            # Create busy indicators for each period
+            busy = {}
             for p in range(1, periods_per_day + 1):
                 occupying_vars = get_occupancy_vars_for_slot(d_idx, p, lecturer=lec.id)
+                is_busy = model.NewBoolVar(f"busy_lec_{lec.id}_d{d_idx}_p{p}")
                 if occupying_vars:
-                    # Create a boolean variable representing if teacher is busy during period p on day d
-                    is_busy = model.NewBoolVar(f"busy_lec_{lec.id}_d{d_idx}_p{p}")
                     model.Add(is_busy == sum(occupying_vars))
-                    lec_day_vars[p] = is_busy
-            
-            if not lec_day_vars:
-                continue
+                else:
+                    model.Add(is_busy == 0)
+                busy[p] = is_busy
                 
-            # Define start_period and end_period variables for this teacher on this day
-            start_p = model.NewIntVar(1, periods_per_day + 1, f"start_p_{lec.id}_d{d_idx}")
-            end_p = model.NewIntVar(0, periods_per_day, f"end_p_{lec.id}_d{d_idx}")
-            is_active = model.NewBoolVar(f"active_{lec.id}_d{d_idx}")
-            
-            # If busy at period p, start_p <= p and end_p >= p
-            for p, busy_var in lec_day_vars.items():
-                model.Add(start_p <= p).OnlyEnforceIf(busy_var)
-                model.Add(end_p >= p).OnlyEnforceIf(busy_var)
+            # Define gaps: a gap occurs at period p (2 <= p <= periods_per_day-1)
+            # if the lecturer is NOT busy at p, but is busy at some p1 < p AND busy at some p2 > p.
+            for p in range(2, periods_per_day):
+                has_before = model.NewBoolVar(f"has_before_{lec.id}_d{d_idx}_p{p}")
+                model.AddMaxEquality(has_before, [busy[p1] for p1 in range(1, p)])
                 
-            # If active, is_active is 1 (sum of busy periods is > 0)
-            model.Add(is_active == 1).OnlyEnforceIf(list(lec_day_vars.values()))
-            model.Add(is_active == 0).OnlyEnforceIf([v.Not() for v in lec_day_vars.values()])
-            
-            # If not active, start_p = periods_per_day + 1 and end_p = 0
-            model.Add(start_p == periods_per_day + 1).OnlyEnforceIf(is_active.Not())
-            model.Add(end_p == 0).OnlyEnforceIf(is_active.Not())
-            
-            # total_periods is the sum of busy periods
-            total_periods = model.NewIntVar(0, periods_per_day, f"total_periods_{lec.id}_d{d_idx}")
-            model.Add(total_periods == sum(lec_day_vars.values()))
-            
-            # Gaps count = (end_p - start_p + 1) - total_periods
-            # Gaps count is end_p - start_p + 1 - total_periods
-            gaps = model.NewIntVar(0, periods_per_day, f"gaps_{lec.id}_d{d_idx}")
-            model.Add(gaps >= (end_p - start_p + 1) - total_periods)
-            gap_penalties.append(gaps)
+                has_after = model.NewBoolVar(f"has_after_{lec.id}_d{d_idx}_p{p}")
+                model.AddMaxEquality(has_after, [busy[p2] for p2 in range(p + 1, periods_per_day + 1)])
+                
+                gap = model.NewBoolVar(f"gap_{lec.id}_d{d_idx}_p{p}")
+                model.AddMinEquality(gap, [has_before, has_after, busy[p].Not()])
+                
+                gap_penalties.append(gap)
 
     if gap_penalties:
         # Minimize total daily gaps across all lecturers
