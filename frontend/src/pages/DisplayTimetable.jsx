@@ -209,8 +209,8 @@ const DisplayTimetable = () => {
                                 font: 'helvetica',
                                 halign: 'center', 
                                 fontStyle: 'bold', 
-                                fillColor: '#f3f4f6',
-                                textColor: '#000000'
+                                fillColor: [240, 240, 240],
+                                textColor: [0, 0, 0]
                             } 
                         }
                     ]);
@@ -230,9 +230,12 @@ const DisplayTimetable = () => {
                 head, 
                 body, 
                 theme: 'grid',
-                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: '#ffffff', textColor: '#000000', lineWidth: 0.1, lineColor: '#000000', halign: 'center' },
-                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 8, cellPadding: 1, overflow: 'linebreak', lineColor: '#000000', lineWidth: 0.1, valign: 'middle', halign: 'center', textColor: '#000000' },
-                columnStyles: { 0: { cellWidth: 25, font: 'helvetica', fontStyle: 'bold' } }
+                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0], halign: 'center' },
+                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 8, cellPadding: 1, overflow: 'linebreak', lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle', halign: 'center', textColor: [0, 0, 0] },
+                columnStyles: { 0: { cellWidth: 25, font: 'helvetica', fontStyle: 'bold' } },
+                didParseCell: (data) => {
+                    data.cell.styles.textColor = [0, 0, 0];
+                }
             });
 
             y = doc.lastAutoTable.finalY + 10;
@@ -250,13 +253,16 @@ const DisplayTimetable = () => {
                 head: footerHead, 
                 body: footerBody, 
                 theme: 'grid', 
-                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: '#f3f4f6', textColor: '#000000', lineWidth: 0.1, lineColor: '#000000' }, 
-                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 9, cellPadding: 2, lineColor: '#000000', lineWidth: 0.1, textColor: '#000000' } 
+                headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0] }, 
+                styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 9, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                didParseCell: (data) => {
+                    data.cell.styles.textColor = [0, 0, 0];
+                }
             });
 
             y = doc.lastAutoTable.finalY + 25;
             doc.setFontSize(10);
-            doc.setTextColor('#000000');
+            doc.setTextColor(0, 0, 0);
             doc.text("___________________", 40, y, { align: "center" }); doc.text("___________________", pageWidth / 2, y, { align: "center" }); doc.text("___________________", pageWidth - 40, y, { align: "center" });
             y += 5;
             doc.text("Prepared By", 40, y, { align: "center" }); doc.text("I/C HOD", pageWidth / 2, y, { align: "center" }); doc.text("Principal", pageWidth - 40, y, { align: "center" });
